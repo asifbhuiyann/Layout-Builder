@@ -1,7 +1,20 @@
 // Navigation Functions
-function exportLayout() {
-    alert('Export functionality will be implemented here');
-    console.log('Exporting layout...');
+function showExportOptions() {
+    const modal = document.getElementById('exportModal');
+    modal.style.display = 'block';
+}
+
+function closeExportModal() {
+    const modal = document.getElementById('exportModal');
+    modal.style.display = 'none';
+}
+
+// Close modal when clicking outside
+window.onclick = function(event) {
+    const modal = document.getElementById('exportModal');
+    if (event.target === modal) {
+        modal.style.display = 'none';
+    }
 }
 
 function importLayout() {
@@ -12,6 +25,195 @@ function importLayout() {
 function saveAsDraft() {
     alert('Save as Draft functionality will be implemented here');
     console.log('Saving as draft...');
+}
+
+// Export Functions
+function exportAsPDF() {
+    const canvas = document.getElementById('layoutCanvas');
+    const sections = canvas.querySelectorAll('.layout-section');
+    
+    if (sections.length === 0) {
+        alert('No layout to export. Please add some components first.');
+        return;
+    }
+
+    html2canvas(canvas, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#f5f5f5'
+    }).then(canvas => {
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF();
+        
+        const imgData = canvas.toDataURL('image/png');
+        const imgWidth = 210;
+        const pageHeight = 295;
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+        let heightLeft = imgHeight;
+        let position = 0;
+
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+
+        while (heightLeft >= 0) {
+            position = heightLeft - imgHeight;
+            pdf.addPage();
+            pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+            heightLeft -= pageHeight;
+        }
+
+        pdf.save('salesforce-layout.pdf');
+        closeExportModal();
+    });
+}
+
+function exportAsDOCX() {
+    const canvas = document.getElementById('layoutCanvas');
+    const sections = canvas.querySelectorAll('.layout-section');
+    
+    if (sections.length === 0) {
+        alert('No layout to export. Please add some components first.');
+        return;
+    }
+
+    const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, AlignmentType } = docx;
+    
+    const children = [];
+    
+    // Add title
+    children.push(new Paragraph({
+        children: [new TextRun({
+            text: "Salesforce Page Layout",
+            bold: true,
+            size: 32
+        })],
+        alignment: AlignmentType.CENTER
+    }));
+    
+    children.push(new Paragraph({ text: "" })); // Empty line
+    
+    sections.forEach((section, index) => {
+        const recordType = section.querySelector('.record-type')?.value || '';
+        const sectionTitle = section.querySelector('.section-title')?.value || '';
+        
+        // Add section header
+        if (recordType) {
+            children.push(new Paragraph({
+                children: [new TextRun({
+                    text: `Record Type: ${recordType}`,
+                    bold: true,
+                    size: 24
+                })],
+                alignment: AlignmentType.LEFT
+            }));
+        }
+        
+        children.push(new Paragraph({
+            children: [new TextRun({
+                text: sectionTitle,
+                bold: true,
+                size: 20
+            })],
+            alignment: AlignmentType.LEFT
+        }));
+        
+        // Add fields
+        const fields = section.querySelectorAll('.field-item');
+        if (fields.length > 0) {
+            const tableRows = [];
+            
+            // Header row
+            tableRows.push(new TableRow({
+                children: [
+                    new TableCell({ children: [new Paragraph({ text: "Field Name" })] }),
+                    new TableCell({ children: [new Paragraph({ text: "Data Type" })] })
+                ]
+            }));
+            
+            fields.forEach(field => {
+                const fieldName = field.querySelector('.field-name')?.value || 'Unnamed Field';
+                const fieldType = field.querySelector('.field-type')?.value || 'text';
+                
+                tableRows.push(new TableRow({
+                    children: [
+                        new TableCell({ children: [new Paragraph({ text: fieldName })] }),
+                        new TableCell({ children: [new Paragraph({ text: fieldType })] })
+                    ]
+                }));
+            });
+            
+            children.push(new Table({
+                rows: tableRows,
+                width: { size: 100, type: "pct" }
+            }));
+        }
+        
+        children.push(new Paragraph({ text: "" })); // Empty line between sections
+    });
+    
+    const doc = new Document({
+        sections: [{
+            properties: {},
+            children: children
+        }]
+    });
+    
+    Packer.toBlob(doc).then(blob => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'salesforce-layout.docx';
+        a.click();
+        URL.revokeObjectURL(url);
+        closeExportModal();
+    });
+}
+
+function exportAsXLS() {
+    const canvas = document.getElementById('layoutCanvas');
+    const sections = canvas.querySelectorAll('.layout-section');
+    
+    if (sections.length === 0) {
+        alert('No layout to export. Please add some components first.');
+        return;
+    }
+
+    const wb = XLSX.utils.book_new();
+    const wsData = [];
+    
+    // Add header
+    wsData.push(['Salesforce Page Layout']);
+    wsData.push([]); // Empty row
+    
+    sections.forEach((section, index) => {
+        const recordType = section.querySelector('.record-type')?.value || '';
+        const sectionTitle = section.querySelector('.section-title')?.value || '';
+        
+        // Add section info
+        if (recordType) {
+            wsData.push([`Record Type: ${recordType}`]);
+        }
+        wsData.push([sectionTitle]);
+        wsData.push(['Field Name', 'Data Type']); // Header row
+        
+        const fields = section.querySelectorAll('.field-item');
+        fields.forEach(field => {
+            const fieldName = field.querySelector('.field-name')?.value || 'Unnamed Field';
+            const fieldType = field.querySelector('.field-type')?.value || 'text';
+            wsData.push([fieldName, fieldType]);
+        });
+        
+        wsData.push([]); // Empty row between sections
+    });
+    
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    
+    // Style the header
+    ws['A1'] = { v: 'Salesforce Page Layout', t: 's', s: { font: { bold: true, sz: 16 } } };
+    
+    XLSX.utils.book_append_sheet(wb, ws, 'Layout');
+    XLSX.writeFile(wb, 'salesforce-layout.xlsx');
+    closeExportModal();
 }
 
 // Layout Builder Functions
@@ -31,11 +233,16 @@ function addComponent() {
     sectionCounter++;
     const sectionId = `section-${sectionCounter}`;
     
+    // Record type field only for the first section
+    const recordTypeField = sectionCounter === 1 ? 
+        `<input type="text" class="record-type" value="Record Type ${sectionCounter}" placeholder="Record Type Name">` : 
+        '';
+    
     const sectionHTML = `
         <div class="layout-section" id="${sectionId}">
             <div class="section-header">
                 <div class="section-info">
-                    <input type="text" class="record-type" value="Record Type ${sectionCounter}" placeholder="Record Type Name">
+                    ${recordTypeField}
                     <input type="text" class="section-title" value="Header Information ${sectionCounter}" placeholder="Section Title">
                 </div>
                 <div class="section-controls">

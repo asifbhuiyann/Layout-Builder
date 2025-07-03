@@ -5,6 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Salesforce Page Layout Builder</title>
     <link rel="stylesheet" href="style.css">
+    
+    <!-- External libraries for export functionality -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/docx/8.2.2/docx.min.js"></script>
 </head>
 <body>
     <!-- Navbar -->
@@ -17,7 +23,7 @@
                 <div class="brand-text">Layout Builder</div>
             </div>
             <div class="nav-buttons">
-                <button class="nav-btn" onclick="exportLayout()">
+                <button class="nav-btn" onclick="showExportOptions()">
                     <span>📤</span> Export
                 </button>
                 <button class="nav-btn" onclick="importLayout()">
@@ -63,6 +69,30 @@
     <footer class="footer">
         <p>&copy; All rights reserved - Asif Bhuiyan</p>
     </footer>
+
+    <!-- Export Modal -->
+    <div id="exportModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Export Layout</h2>
+                <span class="close" onclick="closeExportModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <p>Choose your preferred export format:</p>
+                <div class="export-options">
+                    <button class="export-btn pdf-btn" onclick="exportAsPDF()">
+                        <span>📄</span> Export as PDF
+                    </button>
+                    <button class="export-btn docx-btn" onclick="exportAsDOCX()">
+                        <span>📝</span> Export as DOCX
+                    </button>
+                    <button class="export-btn xls-btn" onclick="exportAsXLS()">
+                        <span>📊</span> Export as XLS
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script src="script.js"></script>
 </body>
