@@ -21,7 +21,7 @@ let fieldCounter = 0;
 function addComponent() {
     const canvas = document.getElementById('layoutCanvas');
     
-    // Remove placeholder if it exists
+    // Remove placeholder if it exists (only for the first component)
     const placeholder = canvas.querySelector('.canvas-placeholder');
     if (placeholder) {
         placeholder.remove();
@@ -34,7 +34,10 @@ function addComponent() {
     const sectionHTML = `
         <div class="layout-section" id="${sectionId}">
             <div class="section-header">
-                <input type="text" class="section-title" value="Header Information" placeholder="Section Title">
+                <div class="section-info">
+                    <input type="text" class="record-type" value="Record Type ${sectionCounter}" placeholder="Record Type Name">
+                    <input type="text" class="section-title" value="Header Information ${sectionCounter}" placeholder="Section Title">
+                </div>
                 <div class="section-controls">
                     <button class="control-btn" onclick="addField('${sectionId}')">Add Field</button>
                     <button class="control-btn danger" onclick="removeSection('${sectionId}')">×</button>
@@ -47,6 +50,7 @@ function addComponent() {
         </div>
     `;
     
+    // Always append to the end (after existing components)
     canvas.insertAdjacentHTML('beforeend', sectionHTML);
     console.log(`Section ${sectionId} added`);
 }
@@ -68,12 +72,30 @@ function addField(sectionId) {
         <div class="field-item" id="${fieldId}">
             <input type="text" class="field-name" placeholder="Field Name" value="">
             <select class="field-type">
-                <option value="text">Text (255 char per line)</option>
-                <option value="textarea">Text Area (255 char on screen)</option>
+                <option value="auto-number">Auto Number</option>
+                <option value="formula">Formula</option>
+                <option value="rollup-summary">Roll-Up Summary</option>
+                <option value="lookup-relationship">Lookup Relationship</option>
+                <option value="master-detail-relationship">Master-Detail Relationship</option>
+                <option value="external-lookup-relationship">External Lookup Relationship</option>
+                <option value="checkbox">Checkbox</option>
+                <option value="currency">Currency</option>
+                <option value="date">Date</option>
+                <option value="datetime">Date/Time</option>
+                <option value="email">Email</option>
+                <option value="geolocation">Geolocation</option>
+                <option value="number">Number</option>
+                <option value="percent">Percent</option>
+                <option value="phone">Phone</option>
                 <option value="picklist">Picklist</option>
-                <option value="lookup">Lookup</option>
-                <option value="lookup-acc">Lookup (Account)</option>
-                <option value="pick-data">Pick a Data Type</option>
+                <option value="picklist-multi-select">Picklist (Multi-Select)</option>
+                <option value="text">Text</option>
+                <option value="text-area">Text Area</option>
+                <option value="text-area-long">Text Area (Long)</option>
+                <option value="text-area-rich">Text Area (Rich)</option>
+                <option value="text-encrypted">Text (Encrypted)</option>
+                <option value="time">Time</option>
+                <option value="url">URL</option>
             </select>
             <button class="remove-field" onclick="removeField('${fieldId}')" title="Remove field">×</button>
         </div>
@@ -120,6 +142,11 @@ function clearCanvas() {
         </div>
     `;
     canvas.classList.remove('has-content');
+    
+    // Reset counters
+    sectionCounter = 0;
+    fieldCounter = 0;
+    
     console.log('Canvas cleared');
 }
 
