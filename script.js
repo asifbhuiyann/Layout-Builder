@@ -39,14 +39,13 @@ function addComponent() {
                     <input type="text" class="section-title" value="Header Information ${sectionCounter}" placeholder="Section Title">
                 </div>
                 <div class="section-controls">
-                    <button class="control-btn" onclick="addField('${sectionId}', 1)">Add Field - 2 Col</button>
-                    <button class="control-btn" onclick="addField('${sectionId}', 2)">Add Field - 1 Col</button>
+                    <button class="control-btn" onclick="addField('${sectionId}', 1)">Add Field - 1 Col</button>
+                    <button class="control-btn" onclick="addField('${sectionId}', 2)">Add Field - 2 Col</button>
                     <button class="control-btn danger" onclick="removeSection('${sectionId}')">×</button>
                 </div>
             </div>
             <div class="section-content">
-                <div class="section-column" id="${sectionId}-left"></div>
-                <div class="section-column" id="${sectionId}-right"></div>
+                <div class="fields-container" id="${sectionId}-fields"></div>
             </div>
         </div>
     `;
@@ -57,64 +56,165 @@ function addComponent() {
 }
 
 function addField(sectionId, columnSpan = 2) {
-    const leftColumn = document.getElementById(`${sectionId}-left`);
-    const rightColumn = document.getElementById(`${sectionId}-right`);
+    const fieldsContainer = document.getElementById(`${sectionId}-fields`);
     
     fieldCounter++;
     const fieldId = `field-${fieldCounter}`;
     
-    const fieldHTML = `
-        <div class="field-item ${columnSpan === 1 ? 'field-single-col' : 'field-double-col'}" id="${fieldId}">
-            <input type="text" class="field-name" placeholder="Field Name" value="">
-            <select class="field-type">
-                <option value="auto-number">Auto Number</option>
-                <option value="formula">Formula</option>
-                <option value="rollup-summary">Roll-Up Summary</option>
-                <option value="lookup-relationship">Lookup Relationship</option>
-                <option value="master-detail-relationship">Master-Detail Relationship</option>
-                <option value="external-lookup-relationship">External Lookup Relationship</option>
-                <option value="checkbox">Checkbox</option>
-                <option value="currency">Currency</option>
-                <option value="date">Date</option>
-                <option value="datetime">Date/Time</option>
-                <option value="email">Email</option>
-                <option value="geolocation">Geolocation</option>
-                <option value="number">Number</option>
-                <option value="percent">Percent</option>
-                <option value="phone">Phone</option>
-                <option value="picklist">Picklist</option>
-                <option value="picklist-multi-select">Picklist (Multi-Select)</option>
-                <option value="text">Text</option>
-                <option value="text-area">Text Area</option>
-                <option value="text-area-long">Text Area (Long)</option>
-                <option value="text-area-rich">Text Area (Rich)</option>
-                <option value="text-encrypted">Text (Encrypted)</option>
-                <option value="time">Time</option>
-                <option value="url">URL</option>
-            </select>
-            <button class="remove-field" onclick="removeField('${fieldId}')" title="Remove field">×</button>
-        </div>
-    `;
+    let fieldHTML = '';
     
     if (columnSpan === 1) {
-        // Single column field - add to left or right column alternately
-        const leftCount = leftColumn.children.length;
-        const rightCount = rightColumn.children.length;
-        const targetColumn = leftCount <= rightCount ? leftColumn : rightColumn;
-        targetColumn.insertAdjacentHTML('beforeend', fieldHTML);
-        console.log(`Single column field ${fieldId} added to ${targetColumn.id}`);
+        // Single column field - takes full width (like the old normal fields)
+        fieldHTML = `
+            <div class="field-row field-row-single" id="${fieldId}">
+                <div class="field-item field-single-col">
+                    <input type="text" class="field-name" placeholder="Field Name" value="">
+                    <select class="field-type">
+                        <option value="auto-number">Auto Number</option>
+                        <option value="formula">Formula</option>
+                        <option value="rollup-summary">Roll-Up Summary</option>
+                        <option value="lookup-relationship">Lookup Relationship</option>
+                        <option value="master-detail-relationship">Master-Detail Relationship</option>
+                        <option value="external-lookup-relationship">External Lookup Relationship</option>
+                        <option value="checkbox">Checkbox</option>
+                        <option value="currency">Currency</option>
+                        <option value="date">Date</option>
+                        <option value="datetime">Date/Time</option>
+                        <option value="email">Email</option>
+                        <option value="geolocation">Geolocation</option>
+                        <option value="number">Number</option>
+                        <option value="percent">Percent</option>
+                        <option value="phone">Phone</option>
+                        <option value="picklist">Picklist</option>
+                        <option value="picklist-multi-select">Picklist (Multi-Select)</option>
+                        <option value="text">Text</option>
+                        <option value="text-area">Text Area</option>
+                        <option value="text-area-long">Text Area (Long)</option>
+                        <option value="text-area-rich">Text Area (Rich)</option>
+                        <option value="text-encrypted">Text (Encrypted)</option>
+                        <option value="time">Time</option>
+                        <option value="url">URL</option>
+                    </select>
+                    <button class="remove-field" onclick="removeField('${fieldId}')" title="Remove field">×</button>
+                </div>
+            </div>
+        `;
     } else {
-        // Double column field - add to the section content as a full-width field
-        const sectionContent = document.getElementById(sectionId).querySelector('.section-content');
-        sectionContent.insertAdjacentHTML('beforeend', fieldHTML);
-        console.log(`Double column field ${fieldId} added to ${sectionId}`);
+        // Double column field - creates two fields side by side
+        fieldHTML = `
+            <div class="field-row field-row-double" id="${fieldId}">
+                <div class="field-item field-double-col">
+                    <input type="text" class="field-name" placeholder="Field Name" value="">
+                    <select class="field-type">
+                        <option value="auto-number">Auto Number</option>
+                        <option value="formula">Formula</option>
+                        <option value="rollup-summary">Roll-Up Summary</option>
+                        <option value="lookup-relationship">Lookup Relationship</option>
+                        <option value="master-detail-relationship">Master-Detail Relationship</option>
+                        <option value="external-lookup-relationship">External Lookup Relationship</option>
+                        <option value="checkbox">Checkbox</option>
+                        <option value="currency">Currency</option>
+                        <option value="date">Date</option>
+                        <option value="datetime">Date/Time</option>
+                        <option value="email">Email</option>
+                        <option value="geolocation">Geolocation</option>
+                        <option value="number">Number</option>
+                        <option value="percent">Percent</option>
+                        <option value="phone">Phone</option>
+                        <option value="picklist">Picklist</option>
+                        <option value="picklist-multi-select">Picklist (Multi-Select)</option>
+                        <option value="text">Text</option>
+                        <option value="text-area">Text Area</option>
+                        <option value="text-area-long">Text Area (Long)</option>
+                        <option value="text-area-rich">Text Area (Rich)</option>
+                        <option value="text-encrypted">Text (Encrypted)</option>
+                        <option value="time">Time</option>
+                        <option value="url">URL</option>
+                    </select>
+                    <button class="remove-field" onclick="removeField('${fieldId}')" title="Remove field">×</button>
+                </div>
+                <div class="field-placeholder" onclick="addFieldToRow('${fieldId}')">
+                    <span class="placeholder-text">Click to add field</span>
+                </div>
+            </div>
+        `;
+    }
+    
+    // Add the field row to the container
+    fieldsContainer.insertAdjacentHTML('beforeend', fieldHTML);
+    console.log(`Field ${fieldId} added (${columnSpan} column)`);
+}
+
+function addFieldToRow(rowId) {
+    const row = document.getElementById(rowId);
+    const placeholder = row.querySelector('.field-placeholder');
+    
+    if (placeholder) {
+        fieldCounter++;
+        const newFieldId = `field-${fieldCounter}`;
+        
+        const newFieldHTML = `
+            <div class="field-item field-double-col" id="${newFieldId}">
+                <input type="text" class="field-name" placeholder="Field Name" value="">
+                <select class="field-type">
+                    <option value="auto-number">Auto Number</option>
+                    <option value="formula">Formula</option>
+                    <option value="rollup-summary">Roll-Up Summary</option>
+                    <option value="lookup-relationship">Lookup Relationship</option>
+                    <option value="master-detail-relationship">Master-Detail Relationship</option>
+                    <option value="external-lookup-relationship">External Lookup Relationship</option>
+                    <option value="checkbox">Checkbox</option>
+                    <option value="currency">Currency</option>
+                    <option value="date">Date</option>
+                    <option value="datetime">Date/Time</option>
+                    <option value="email">Email</option>
+                    <option value="geolocation">Geolocation</option>
+                    <option value="number">Number</option>
+                    <option value="percent">Percent</option>
+                    <option value="phone">Phone</option>
+                    <option value="picklist">Picklist</option>
+                    <option value="picklist-multi-select">Picklist (Multi-Select)</option>
+                    <option value="text">Text</option>
+                    <option value="text-area">Text Area</option>
+                    <option value="text-area-long">Text Area (Long)</option>
+                    <option value="text-area-rich">Text Area (Rich)</option>
+                    <option value="text-encrypted">Text (Encrypted)</option>
+                    <option value="time">Time</option>
+                    <option value="url">URL</option>
+                </select>
+                <button class="remove-field" onclick="removeField('${newFieldId}')" title="Remove field">×</button>
+            </div>
+        `;
+        
+        placeholder.outerHTML = newFieldHTML;
+        console.log(`Field ${newFieldId} added to row ${rowId}`);
     }
 }
 
 function removeField(fieldId) {
     const field = document.getElementById(fieldId);
     if (field) {
-        field.remove();
+        // If it's a single field row, remove the entire row
+        if (field.classList.contains('field-row-single')) {
+            field.remove();
+        } else {
+            // If it's part of a double field row, replace with placeholder
+            const row = field.closest('.field-row-double');
+            if (row) {
+                const remainingFields = row.querySelectorAll('.field-item');
+                if (remainingFields.length === 1) {
+                    // Only one field left, remove entire row
+                    row.remove();
+                } else {
+                    // Replace this field with placeholder
+                    field.outerHTML = `
+                        <div class="field-placeholder" onclick="addFieldToRow('${row.id}')">
+                            <span class="placeholder-text">Click to add field</span>
+                        </div>
+                    `;
+                }
+            }
+        }
         console.log(`Field ${fieldId} removed`);
     }
 }
