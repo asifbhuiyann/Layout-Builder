@@ -22,9 +22,315 @@ function importLayout() {
     console.log('Importing layout...');
 }
 
+// Save and Load Functions
 function saveAsDraft() {
-    alert('Save as Draft functionality will be implemented here');
-    console.log('Saving as draft...');
+    try {
+        const layoutData = captureLayoutData();
+        localStorage.setItem('salesforce-layout-draft', JSON.stringify(layoutData));
+        
+        // Show success message
+        showNotification('Draft saved successfully!', 'success');
+        console.log('Draft saved to localStorage');
+    } catch (error) {
+        console.error('Error saving draft:', error);
+        showNotification('Error saving draft. Please try again.', 'error');
+    }
+}
+
+function loadDraft() {
+    try {
+        const savedData = localStorage.getItem('salesforce-layout-draft');
+        if (savedData) {
+            const layoutData = JSON.parse(savedData);
+            restoreLayoutData(layoutData);
+            showNotification('Draft loaded successfully!', 'success');
+            console.log('Draft loaded from localStorage');
+            return true;
+        }
+        return false;
+    } catch (error) {
+        console.error('Error loading draft:', error);
+        showNotification('Error loading draft.', 'error');
+        return false;
+    }
+}
+
+function captureLayoutData() {
+    const canvas = document.getElementById('layoutCanvas');
+    const sections = canvas.querySelectorAll('.layout-section');
+    const layoutData = {
+        sections: [],
+        counters: {
+            sectionCounter: sectionCounter,
+            fieldCounter: fieldCounter
+        },
+        timestamp: new Date().toISOString()
+    };
+
+    sections.forEach(section => {
+        const sectionData = {
+            id: section.id,
+            recordType: '',
+            sectionTitle: '',
+            fields: []
+        };
+
+        // Get record type (only for first section)
+        const recordTypeInput = section.querySelector('.record-type');
+        if (recordTypeInput) {
+            sectionData.recordType = recordTypeInput.value;
+        }
+
+        // Get section title
+        const sectionTitleInput = section.querySelector('.section-title');
+        if (sectionTitleInput) {
+            sectionData.sectionTitle = sectionTitleInput.value;
+        }
+
+        // Get all fields
+        const fieldItems = section.querySelectorAll('.field-item');
+        fieldItems.forEach(field => {
+            const fieldData = {
+                id: field.id,
+                name: '',
+                type: '',
+                columnSpan: 1,
+                rowId: ''
+            };
+
+            // Get field name
+            const fieldNameInput = field.querySelector('.field-name');
+            if (fieldNameInput) {
+                fieldData.name = fieldNameInput.value;
+            }
+
+            // Get field type
+            const fieldTypeSelect = field.querySelector('.field-type');
+            if (fieldTypeSelect) {
+                fieldData.type = fieldTypeSelect.value;
+            }
+
+            // Determine column span
+            const fieldRow = field.closest('.field-row');
+            if (fieldRow) {
+                if (fieldRow.classList.contains('field-row-single')) {
+                    fieldData.columnSpan = 1;
+                } else if (fieldRow.classList.contains('field-row-double')) {
+                    fieldData.columnSpan = 2;
+                    fieldData.rowId = fieldRow.id;
+                }
+            }
+
+            sectionData.fields.push(fieldData);
+        });
+
+        layoutData.sections.push(sectionData);
+    });
+
+    return layoutData;
+}
+
+function restoreLayoutData(layoutData) {
+    // Clear existing canvas
+    clearCanvas();
+    
+    // Restore counters
+    if (layoutData.counters) {
+        sectionCounter = layoutData.counters.sectionCounter || 0;
+        fieldCounter = layoutData.counters.fieldCounter || 0;
+    }
+
+    // Restore sections
+    layoutData.sections.forEach((sectionData, index) => {
+        // Create section
+        const canvas = document.getElementById('layoutCanvas');
+        const placeholder = canvas.querySelector('.canvas-placeholder');
+        if (placeholder) {
+            placeholder.remove();
+            canvas.classList.add('has-content');
+        }
+
+        const sectionId = sectionData.id;
+        const isFirstSection = index === 0;
+        
+        // Record type field only for the first section
+        const recordTypeField = isFirstSection ? 
+            `<input type="text" class="record-type" value="${sectionData.recordType}" placeholder="Record Type Name">` : 
+            '';
+        
+        const sectionHTML = `
+            <div class="layout-section" id="${sectionId}">
+                <div class="section-header">
+                    <div class="section-info">
+                        ${recordTypeField}
+                        <input type="text" class="section-title" value="${sectionData.sectionTitle}" placeholder="Section Title">
+                    </div>
+                    <div class="section-controls">
+                        <button class="control-btn" onclick="addField('${sectionId}', 1)">Add Field - 1 Col</button>
+                        <button class="control-btn" onclick="addField('${sectionId}', 2)">Add Field - 2 Col</button>
+                        <button class="control-btn danger" onclick="removeSection('${sectionId}')">×</button>
+                    </div>
+                </div>
+                <div class="section-content">
+                    <div class="fields-container" id="${sectionId}-fields"></div>
+                </div>
+            </div>
+        `;
+        
+        canvas.insertAdjacentHTML('beforeend', sectionHTML);
+
+        // Restore fields
+        const fieldsContainer = document.getElementById(`${sectionId}-fields`);
+        const processedRows = new Set();
+        
+        sectionData.fields.forEach(fieldData => {
+            if (fieldData.columnSpan === 1) {
+                // Single column field
+                const fieldHTML = `
+                    <div class="field-row field-row-single" id="${fieldData.id}">
+                        <div class="field-item field-single-col">
+                            <input type="text" class="field-name" placeholder="Field Name" value="${fieldData.name}">
+                            <select class="field-type">
+                                <option value="auto-number">Auto Number</option>
+                                <option value="formula">Formula</option>
+                                <option value="rollup-summary">Roll-Up Summary</option>
+                                <option value="lookup-relationship">Lookup Relationship</option>
+                                <option value="master-detail-relationship">Master-Detail Relationship</option>
+                                <option value="external-lookup-relationship">External Lookup Relationship</option>
+                                <option value="checkbox">Checkbox</option>
+                                <option value="currency">Currency</option>
+                                <option value="date">Date</option>
+                                <option value="datetime">Date/Time</option>
+                                <option value="email">Email</option>
+                                <option value="geolocation">Geolocation</option>
+                                <option value="number">Number</option>
+                                <option value="percent">Percent</option>
+                                <option value="phone">Phone</option>
+                                <option value="picklist">Picklist</option>
+                                <option value="picklist-multi-select">Picklist (Multi-Select)</option>
+                                <option value="text">Text</option>
+                                <option value="text-area">Text Area</option>
+                                <option value="text-area-long">Text Area (Long)</option>
+                                <option value="text-area-rich">Text Area (Rich)</option>
+                                <option value="text-encrypted">Text (Encrypted)</option>
+                                <option value="time">Time</option>
+                                <option value="url">URL</option>
+                            </select>
+                            <button class="remove-field" onclick="removeField('${fieldData.id}')" title="Remove field">×</button>
+                        </div>
+                    </div>
+                `;
+                fieldsContainer.insertAdjacentHTML('beforeend', fieldHTML);
+                
+                // Set the selected option
+                const fieldTypeSelect = document.querySelector(`#${fieldData.id} .field-type`);
+                if (fieldTypeSelect) {
+                    fieldTypeSelect.value = fieldData.type;
+                }
+                
+            } else if (fieldData.columnSpan === 2 && fieldData.rowId && !processedRows.has(fieldData.rowId)) {
+                // Double column field - process entire row
+                processedRows.add(fieldData.rowId);
+                
+                // Get all fields in this row
+                const rowFields = sectionData.fields.filter(f => f.rowId === fieldData.rowId);
+                
+                let rowHTML = `<div class="field-row field-row-double" id="${fieldData.rowId}">`;
+                
+                rowFields.forEach(rowField => {
+                    rowHTML += `
+                        <div class="field-item field-double-col" id="${rowField.id}">
+                            <input type="text" class="field-name" placeholder="Field Name" value="${rowField.name}">
+                            <select class="field-type">
+                                <option value="auto-number">Auto Number</option>
+                                <option value="formula">Formula</option>
+                                <option value="rollup-summary">Roll-Up Summary</option>
+                                <option value="lookup-relationship">Lookup Relationship</option>
+                                <option value="master-detail-relationship">Master-Detail Relationship</option>
+                                <option value="external-lookup-relationship">External Lookup Relationship</option>
+                                <option value="checkbox">Checkbox</option>
+                                <option value="currency">Currency</option>
+                                <option value="date">Date</option>
+                                <option value="datetime">Date/Time</option>
+                                <option value="email">Email</option>
+                                <option value="geolocation">Geolocation</option>
+                                <option value="number">Number</option>
+                                <option value="percent">Percent</option>
+                                <option value="phone">Phone</option>
+                                <option value="picklist">Picklist</option>
+                                <option value="picklist-multi-select">Picklist (Multi-Select)</option>
+                                <option value="text">Text</option>
+                                <option value="text-area">Text Area</option>
+                                <option value="text-area-long">Text Area (Long)</option>
+                                <option value="text-area-rich">Text Area (Rich)</option>
+                                <option value="text-encrypted">Text (Encrypted)</option>
+                                <option value="time">Time</option>
+                                <option value="url">URL</option>
+                            </select>
+                            <button class="remove-field" onclick="removeFieldFromRow('${fieldData.rowId}', '${rowField.id}')" title="Remove field">×</button>
+                        </div>
+                    `;
+                });
+                
+                // Add placeholder if only one field in row
+                if (rowFields.length === 1) {
+                    rowHTML += `
+                        <div class="field-placeholder" onclick="addFieldToRow('${fieldData.rowId}')">
+                            <span class="placeholder-text">Click to add field</span>
+                        </div>
+                    `;
+                }
+                
+                rowHTML += `</div>`;
+                fieldsContainer.insertAdjacentHTML('beforeend', rowHTML);
+                
+                // Set the selected options for all fields in this row
+                rowFields.forEach(rowField => {
+                    const fieldTypeSelect = document.querySelector(`#${rowField.id} .field-type`);
+                    if (fieldTypeSelect) {
+                        fieldTypeSelect.value = rowField.type;
+                    }
+                });
+            }
+        });
+    });
+
+    console.log('Layout restored successfully');
+}
+
+function clearDraft() {
+    try {
+        localStorage.removeItem('salesforce-layout-draft');
+        showNotification('Draft cleared successfully!', 'success');
+        console.log('Draft cleared from localStorage');
+    } catch (error) {
+        console.error('Error clearing draft:', error);
+        showNotification('Error clearing draft.', 'error');
+    }
+}
+
+// Notification system
+function showNotification(message, type = 'info') {
+    // Remove existing notification
+    const existingNotification = document.querySelector('.notification');
+    if (existingNotification) {
+        existingNotification.remove();
+    }
+
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.textContent = message;
+    
+    // Add to body
+    document.body.appendChild(notification);
+    
+    // Remove after 3 seconds
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.remove();
+        }
+    }, 3000);
 }
 
 // Helper function to get field value
@@ -562,4 +868,10 @@ window.addEventListener('resize', function() {
 // Initialize the application
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Salesforce Page Layout Builder initialized');
+    
+    // Auto-load draft when page loads
+    const draftLoaded = loadDraft();
+    if (draftLoaded) {
+        console.log('Previous draft loaded automatically');
+    }
 });
