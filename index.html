@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Salesforce Page Layout Builder</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="script.js" defer></script>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="navbar-container">
+            <div class="logo-container">
+                <div class="logo">
+                    <img src="micronetbd.png" alt="Logo" class="logo-image">
+                </div>
+                <div class="brand-text">Layout Builder</div>
+            </div>
+            <div class="nav-buttons">
+                <button class="nav-btn" onclick="exportLayout()">
+                    <span>📤</span> Export
+                </button>
+                <button class="nav-btn" onclick="importLayout()">
+                    <span>📥</span> Import
+                </button>
+                <button class="nav-btn primary" onclick="saveAsDraft()">
+                    <span>💾</span> Save as Draft
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="content-header">
+            <h1>Salesforce Page Layout Builder</h1>
+            <p>Design and customize your Salesforce page layouts with our intuitive drag-and-drop interface</p>
+        </div>
+
+        <div class="layout-builder">
+            <div class="builder-header">
+                <div class="builder-title">Layout Canvas</div>
+                <div class="layout-actions">
+                    <button class="action-btn" onclick="addComponent()">
+                        <span>➕</span> Add Component
+                    </button>
+                    <button class="action-btn" onclick="clearCanvas()">
+                        <span>🗑️</span> Clear
+                    </button>
+                </div>
+            </div>
+            
+            <div class="canvas-area" id="layoutCanvas">
+                <div class="canvas-placeholder">
+                    <h3>Your Layout Canvas</h3>
+                    <p>Drag and drop components here to build your Salesforce page layout</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>&copy; All rights reserved - Asif Bhuiyan</p>
+    </footer>
+</body>
+</html>
