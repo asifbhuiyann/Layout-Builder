@@ -27,6 +27,25 @@ function saveAsDraft() {
     console.log('Saving as draft...');
 }
 
+// Helper function to get field value
+function getFieldValue(element, fallback = '') {
+    if (!element) return fallback;
+    
+    // Get the actual value, trimmed
+    const value = element.value ? element.value.trim() : '';
+    
+    // If empty, return fallback
+    return value || fallback;
+}
+
+// Helper function to get selected option text
+function getSelectedOptionText(selectElement, fallback = 'Text') {
+    if (!selectElement) return fallback;
+    
+    const selectedOption = selectElement.options[selectElement.selectedIndex];
+    return selectedOption ? selectedOption.text : fallback;
+}
+
 // Export Functions
 function exportAsPDF() {
     const canvas = document.getElementById('layoutCanvas');
@@ -37,18 +56,39 @@ function exportAsPDF() {
         return;
     }
 
+    // Temporarily expand field inputs to show full text
+    const fieldInputs = canvas.querySelectorAll('.field-name');
+    const originalStyles = [];
+    
+    fieldInputs.forEach((input, index) => {
+        originalStyles[index] = {
+            width: input.style.width,
+            minWidth: input.style.minWidth
+        };
+        input.style.width = 'auto';
+        input.style.minWidth = input.scrollWidth + 'px';
+    });
+
     html2canvas(canvas, {
         scale: 2,
         useCORS: true,
-        backgroundColor: '#f5f5f5'
-    }).then(canvas => {
+        backgroundColor: '#f5f5f5',
+        width: canvas.scrollWidth,
+        height: canvas.scrollHeight
+    }).then(canvasElement => {
+        // Restore original styles
+        fieldInputs.forEach((input, index) => {
+            input.style.width = originalStyles[index].width;
+            input.style.minWidth = originalStyles[index].minWidth;
+        });
+
         const { jsPDF } = window.jspdf;
         const pdf = new jsPDF();
         
-        const imgData = canvas.toDataURL('image/png');
+        const imgData = canvasElement.toDataURL('image/png');
         const imgWidth = 210;
         const pageHeight = 295;
-        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+        const imgHeight = (canvasElement.height * imgWidth) / canvasElement.width;
         let heightLeft = imgHeight;
         let position = 0;
 
@@ -88,10 +128,12 @@ function exportAsDOCX() {
                 h2 { color: #1565C0; border-bottom: 2px solid #E3F2FD; padding-bottom: 5px; }
                 h3 { color: #8BC34A; margin-top: 20px; }
                 table { width: 100%; border-collapse: collapse; margin: 10px 0; }
-                th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                th, td { border: 1px solid #ddd; padding: 8px; text-align: left; word-wrap: break-word; }
                 th { background-color: #f2f2f2; font-weight: bold; }
                 .record-type { background-color: #F1F8E9; padding: 10px; margin: 10px 0; border-left: 4px solid #8BC34A; }
                 .section { margin: 20px 0; }
+                .field-name { max-width: 200px; word-wrap: break-word; }
+                .field-type { max-width: 150px; word-wrap: break-word; }
             </style>
         </head>
         <body>
@@ -99,8 +141,11 @@ function exportAsDOCX() {
     `;
 
     sections.forEach((section, index) => {
-        const recordType = section.querySelector('.record-type')?.value || '';
-        const sectionTitle = section.querySelector('.section-title')?.value || '';
+        const recordTypeInput = section.querySelector('.record-type');
+        const sectionTitleInput = section.querySelector('.section-title');
+        
+        const recordType = getFieldValue(recordTypeInput, '');
+        const sectionTitle = getFieldValue(sectionTitleInput, `Section ${index + 1}`);
         
         htmlContent += `<div class="section">`;
         
@@ -123,14 +168,17 @@ function exportAsDOCX() {
                     <tbody>
             `;
             
-            fields.forEach(field => {
-                const fieldName = field.querySelector('.field-name')?.value || 'Unnamed Field';
-                const fieldType = field.querySelector('.field-type')?.selectedOptions[0]?.text || 'Text';
+            fields.forEach((field, fieldIndex) => {
+                const fieldNameInput = field.querySelector('.field-name');
+                const fieldTypeSelect = field.querySelector('.field-type');
+                
+                const fieldName = getFieldValue(fieldNameInput, `Field ${fieldIndex + 1}`);
+                const fieldType = getSelectedOptionText(fieldTypeSelect, 'Text');
                 
                 htmlContent += `
                     <tr>
-                        <td>${fieldName}</td>
-                        <td>${fieldType}</td>
+                        <td class="field-name">${fieldName}</td>
+                        <td class="field-type">${fieldType}</td>
                     </tr>
                 `;
             });
@@ -176,8 +224,11 @@ function exportAsXLS() {
     wsData.push([]); // Empty row
     
     sections.forEach((section, index) => {
-        const recordType = section.querySelector('.record-type')?.value || '';
-        const sectionTitle = section.querySelector('.section-title')?.value || '';
+        const recordTypeInput = section.querySelector('.record-type');
+        const sectionTitleInput = section.querySelector('.section-title');
+        
+        const recordType = getFieldValue(recordTypeInput, '');
+        const sectionTitle = getFieldValue(sectionTitleInput, `Section ${index + 1}`);
         
         // Add section info
         if (recordType) {
@@ -187,9 +238,13 @@ function exportAsXLS() {
         wsData.push(['Field Name', 'Data Type']); // Header row
         
         const fields = section.querySelectorAll('.field-item');
-        fields.forEach(field => {
-            const fieldName = field.querySelector('.field-name')?.value || 'Unnamed Field';
-            const fieldType = field.querySelector('.field-type')?.selectedOptions[0]?.text || 'Text';
+        fields.forEach((field, fieldIndex) => {
+            const fieldNameInput = field.querySelector('.field-name');
+            const fieldTypeSelect = field.querySelector('.field-type');
+            
+            const fieldName = getFieldValue(fieldNameInput, `Field ${fieldIndex + 1}`);
+            const fieldType = getSelectedOptionText(fieldTypeSelect, 'Text');
+            
             wsData.push([fieldName, fieldType]);
         });
         
@@ -197,6 +252,17 @@ function exportAsXLS() {
     });
     
     const ws = XLSX.utils.aoa_to_sheet(wsData);
+    
+    // Auto-adjust column widths
+    const colWidths = [];
+    wsData.forEach(row => {
+        row.forEach((cell, colIndex) => {
+            const cellLength = cell ? cell.toString().length : 0;
+            colWidths[colIndex] = Math.max(colWidths[colIndex] || 0, cellLength);
+        });
+    });
+    
+    ws['!cols'] = colWidths.map(width => ({ wch: Math.min(width + 5, 50) }));
     
     // Style the header
     ws['A1'] = { v: 'Salesforce Page Layout', t: 's', s: { font: { bold: true, sz: 16 } } };

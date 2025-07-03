@@ -235,11 +235,13 @@ body {
     color: var(--dark-blue);
     font-size: 1.2rem;
     font-weight: 600;
-    padding: 0.25rem 0.5rem;
+    padding: 0.5rem 0.75rem;
     border: 1px solid transparent;
     border-radius: 4px;
     background: transparent;
     cursor: text;
+    min-height: 45px;
+    line-height: 1.4;
 }
 
 .section-title:focus {
@@ -252,11 +254,13 @@ body {
     color: var(--gray-dark);
     font-size: 1rem;
     font-weight: 500;
-    padding: 0.25rem 0.5rem;
+    padding: 0.5rem 0.75rem;
     border: 1px solid transparent;
     border-radius: 4px;
     background: transparent;
     cursor: text;
+    min-height: 45px;
+    line-height: 1.4;
 }
 
 .record-type:focus {
@@ -329,10 +333,11 @@ body {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.75rem;
+    padding: 1rem;
     border: 1px solid #ddd;
     border-radius: 6px;
     background: #fafafa;
+    min-height: 80px;
 }
 
 .field-item.field-single-col {
@@ -352,7 +357,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    min-height: 60px;
+    min-height: 80px;
     border: 2px dashed #ccc;
     border-radius: 6px;
     background: #f9f9f9;
@@ -373,19 +378,37 @@ body {
 
 .field-name {
     flex: 1;
-    padding: 0.5rem;
+    padding: 0.75rem;
     border: 1px solid #ccc;
     border-radius: 4px;
     font-size: 0.9rem;
+    min-height: 50px;
+    line-height: 1.4;
+    resize: vertical;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.field-name:focus {
+    outline: none;
+    border-color: var(--primary-blue);
+    box-shadow: 0 0 0 2px rgba(30, 136, 229, 0.2);
 }
 
 .field-type {
-    padding: 0.5rem;
+    padding: 0.75rem;
     border: 1px solid #ccc;
     border-radius: 4px;
     font-size: 0.9rem;
     background: var(--white);
-    min-width: 120px;
+    min-width: 140px;
+    min-height: 50px;
+}
+
+.field-type:focus {
+    outline: none;
+    border-color: var(--primary-blue);
+    box-shadow: 0 0 0 2px rgba(30, 136, 229, 0.2);
 }
 
 .remove-field {
@@ -393,14 +416,15 @@ body {
     color: white;
     border: none;
     border-radius: 50%;
-    width: 24px;
-    height: 24px;
+    width: 30px;
+    height: 30px;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 14px;
+    font-size: 16px;
     transition: all 0.3s ease;
+    flex-shrink: 0;
 }
 
 .remove-field:hover {
@@ -414,127 +438,6 @@ body {
     padding: 1rem;
 }
 
-/* Footer */
-.footer {
-    background: linear-gradient(135deg, var(--dark-blue) 0%, var(--dark-green) 100%);
-    color: var(--white);
-    text-align: center;
-    padding: 1.5rem;
-    margin-top: auto;
-}
-
-.footer p {
-    font-size: 0.9rem;
-    opacity: 0.9;
-}
-
-/* Responsive Design */
-@media (max-width: 768px) {
-    .navbar {
-        padding: 1rem;
-    }
-
-    .navbar-container {
-        flex-direction: column;
-        gap: 1rem;
-    }
-
-    .nav-buttons {
-        flex-wrap: wrap;
-        justify-content: center;
-    }
-
-    .nav-btn {
-        padding: 0.5rem 1rem;
-        font-size: 0.9rem;
-    }
-
-    .main-content {
-        padding: 1rem;
-    }
-
-    .content-header h1 {
-        font-size: 2rem;
-    }
-
-    .layout-builder {
-        padding: 1rem;
-    }
-
-    .builder-header {
-        flex-direction: column;
-        gap: 1rem;
-        align-items: stretch;
-    }
-
-    .layout-actions {
-        justify-content: center;
-    }
-
-    .field-row-double {
-        grid-template-columns: 1fr;
-        gap: 1rem;
-    }
-
-    .field-placeholder {
-        display: none;
-    }
-    
-    .section-header {
-        flex-direction: column;
-        gap: 0.5rem;
-        align-items: stretch;
-    }
-    
-    .section-controls {
-        justify-content: center;
-    }
-
-    .control-btn {
-        padding: 0.4rem 0.8rem;
-        font-size: 0.8rem;
-    }
-}
-
-@media (max-width: 480px) {
-    .brand-text {
-        font-size: 1.2rem;
-    }
-
-    .nav-buttons {
-        gap: 0.5rem;
-    }
-
-    .nav-btn {
-        padding: 0.5rem 0.75rem;
-        font-size: 0.8rem;
-    }
-
-    .content-header h1 {
-        font-size: 1.5rem;
-    }
-
-    .action-btn {
-        padding: 0.5rem 1rem;
-        font-size: 0.9rem;
-    }
-}
-
-/* Animation for smooth interactions */
-@keyframes fadeInUp {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.layout-builder {
-    animation: fadeInUp 0.6s ease-out;
-}
 /* Modal Styles */
 .modal {
     display: none;
@@ -656,8 +559,87 @@ body {
     }
 }
 
-/* Responsive Modal */
+/* Footer */
+.footer {
+    background: linear-gradient(135deg, var(--dark-blue) 0%, var(--dark-green) 100%);
+    color: var(--white);
+    text-align: center;
+    padding: 1.5rem;
+    margin-top: auto;
+}
+
+.footer p {
+    font-size: 0.9rem;
+    opacity: 0.9;
+}
+
+/* Responsive Design */
 @media (max-width: 768px) {
+    .navbar {
+        padding: 1rem;
+    }
+
+    .navbar-container {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .nav-buttons {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .nav-btn {
+        padding: 0.5rem 1rem;
+        font-size: 0.9rem;
+    }
+
+    .main-content {
+        padding: 1rem;
+    }
+
+    .content-header h1 {
+        font-size: 2rem;
+    }
+
+    .layout-builder {
+        padding: 1rem;
+    }
+
+    .builder-header {
+        flex-direction: column;
+        gap: 1rem;
+        align-items: stretch;
+    }
+
+    .layout-actions {
+        justify-content: center;
+    }
+
+    .field-row-double {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .field-placeholder {
+        display: none;
+    }
+    
+    .section-header {
+        flex-direction: column;
+        gap: 0.5rem;
+        align-items: stretch;
+    }
+    
+    .section-controls {
+        justify-content: center;
+    }
+
+    .control-btn {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.8rem;
+    }
+
     .modal-content {
         width: 95%;
         margin: 5% auto;
@@ -679,4 +661,44 @@ body {
         padding: 0.75rem 1rem;
         font-size: 0.9rem;
     }
+}
+
+@media (max-width: 480px) {
+    .brand-text {
+        font-size: 1.2rem;
+    }
+
+    .nav-buttons {
+        gap: 0.5rem;
+    }
+
+    .nav-btn {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.8rem;
+    }
+
+    .content-header h1 {
+        font-size: 1.5rem;
+    }
+
+    .action-btn {
+        padding: 0.5rem 1rem;
+        font-size: 0.9rem;
+    }
+}
+
+/* Animation for smooth interactions */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.layout-builder {
+    animation: fadeInUp 0.6s ease-out;
 }
