@@ -39,7 +39,8 @@ function addComponent() {
                     <input type="text" class="section-title" value="Header Information ${sectionCounter}" placeholder="Section Title">
                 </div>
                 <div class="section-controls">
-                    <button class="control-btn" onclick="addField('${sectionId}')">Add Field</button>
+                    <button class="control-btn" onclick="addField('${sectionId}', 1)">Add Field - 2 Col</button>
+                    <button class="control-btn" onclick="addField('${sectionId}', 2)">Add Field - 1 Col</button>
                     <button class="control-btn danger" onclick="removeSection('${sectionId}')">×</button>
                 </div>
             </div>
@@ -55,21 +56,15 @@ function addComponent() {
     console.log(`Section ${sectionId} added`);
 }
 
-function addField(sectionId) {
+function addField(sectionId, columnSpan = 2) {
     const leftColumn = document.getElementById(`${sectionId}-left`);
     const rightColumn = document.getElementById(`${sectionId}-right`);
-    
-    // Determine which column to add to (alternate, left gets preference)
-    const leftCount = leftColumn.children.length;
-    const rightCount = rightColumn.children.length;
-    
-    const targetColumn = leftCount <= rightCount ? leftColumn : rightColumn;
     
     fieldCounter++;
     const fieldId = `field-${fieldCounter}`;
     
     const fieldHTML = `
-        <div class="field-item" id="${fieldId}">
+        <div class="field-item ${columnSpan === 1 ? 'field-single-col' : 'field-double-col'}" id="${fieldId}">
             <input type="text" class="field-name" placeholder="Field Name" value="">
             <select class="field-type">
                 <option value="auto-number">Auto Number</option>
@@ -101,8 +96,19 @@ function addField(sectionId) {
         </div>
     `;
     
-    targetColumn.insertAdjacentHTML('beforeend', fieldHTML);
-    console.log(`Field ${fieldId} added to ${targetColumn.id}`);
+    if (columnSpan === 1) {
+        // Single column field - add to left or right column alternately
+        const leftCount = leftColumn.children.length;
+        const rightCount = rightColumn.children.length;
+        const targetColumn = leftCount <= rightCount ? leftColumn : rightColumn;
+        targetColumn.insertAdjacentHTML('beforeend', fieldHTML);
+        console.log(`Single column field ${fieldId} added to ${targetColumn.id}`);
+    } else {
+        // Double column field - add to the section content as a full-width field
+        const sectionContent = document.getElementById(sectionId).querySelector('.section-content');
+        sectionContent.insertAdjacentHTML('beforeend', fieldHTML);
+        console.log(`Double column field ${fieldId} added to ${sectionId}`);
+    }
 }
 
 function removeField(fieldId) {

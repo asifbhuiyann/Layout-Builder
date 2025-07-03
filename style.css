@@ -269,6 +269,7 @@ body {
     display: flex;
     gap: 0.5rem;
     align-items: flex-start;
+    flex-wrap: wrap;
 }
 
 .control-btn {
@@ -280,6 +281,7 @@ body {
     font-size: 0.9rem;
     cursor: pointer;
     transition: all 0.3s ease;
+    white-space: nowrap;
 }
 
 .control-btn:hover {
@@ -318,6 +320,18 @@ body {
     border-radius: 6px;
     background: #fafafa;
     margin-bottom: 0.5rem;
+}
+
+.field-item.field-single-col {
+    /* Single column field styling */
+}
+
+.field-item.field-double-col {
+    /* Double column field - spans across both columns */
+    grid-column: 1 / -1;
+    background: #f0f8ff;
+    border-color: var(--primary-blue);
+    border-width: 2px;
 }
 
 .field-name {
@@ -433,6 +447,11 @@ body {
     
     .section-controls {
         justify-content: center;
+    }
+
+    .control-btn {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.8rem;
     }
 }
 
