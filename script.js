@@ -76,97 +76,87 @@ function exportAsDOCX() {
         return;
     }
 
-    const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, AlignmentType } = docx;
-    
-    const children = [];
-    
-    // Add title
-    children.push(new Paragraph({
-        children: [new TextRun({
-            text: "Salesforce Page Layout",
-            bold: true,
-            size: 32
-        })],
-        alignment: AlignmentType.CENTER
-    }));
-    
-    children.push(new Paragraph({ text: "" })); // Empty line
-    
+    let htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>Salesforce Page Layout</title>
+            <style>
+                body { font-family: Arial, sans-serif; margin: 20px; }
+                h1 { color: #1E88E5; text-align: center; }
+                h2 { color: #1565C0; border-bottom: 2px solid #E3F2FD; padding-bottom: 5px; }
+                h3 { color: #8BC34A; margin-top: 20px; }
+                table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+                th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                th { background-color: #f2f2f2; font-weight: bold; }
+                .record-type { background-color: #F1F8E9; padding: 10px; margin: 10px 0; border-left: 4px solid #8BC34A; }
+                .section { margin: 20px 0; }
+            </style>
+        </head>
+        <body>
+            <h1>Salesforce Page Layout</h1>
+    `;
+
     sections.forEach((section, index) => {
         const recordType = section.querySelector('.record-type')?.value || '';
         const sectionTitle = section.querySelector('.section-title')?.value || '';
         
-        // Add section header
+        htmlContent += `<div class="section">`;
+        
         if (recordType) {
-            children.push(new Paragraph({
-                children: [new TextRun({
-                    text: `Record Type: ${recordType}`,
-                    bold: true,
-                    size: 24
-                })],
-                alignment: AlignmentType.LEFT
-            }));
+            htmlContent += `<div class="record-type"><strong>Record Type:</strong> ${recordType}</div>`;
         }
         
-        children.push(new Paragraph({
-            children: [new TextRun({
-                text: sectionTitle,
-                bold: true,
-                size: 20
-            })],
-            alignment: AlignmentType.LEFT
-        }));
+        htmlContent += `<h3>${sectionTitle}</h3>`;
         
-        // Add fields
         const fields = section.querySelectorAll('.field-item');
         if (fields.length > 0) {
-            const tableRows = [];
-            
-            // Header row
-            tableRows.push(new TableRow({
-                children: [
-                    new TableCell({ children: [new Paragraph({ text: "Field Name" })] }),
-                    new TableCell({ children: [new Paragraph({ text: "Data Type" })] })
-                ]
-            }));
+            htmlContent += `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Field Name</th>
+                            <th>Data Type</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
             
             fields.forEach(field => {
                 const fieldName = field.querySelector('.field-name')?.value || 'Unnamed Field';
-                const fieldType = field.querySelector('.field-type')?.value || 'text';
+                const fieldType = field.querySelector('.field-type')?.selectedOptions[0]?.text || 'Text';
                 
-                tableRows.push(new TableRow({
-                    children: [
-                        new TableCell({ children: [new Paragraph({ text: fieldName })] }),
-                        new TableCell({ children: [new Paragraph({ text: fieldType })] })
-                    ]
-                }));
+                htmlContent += `
+                    <tr>
+                        <td>${fieldName}</td>
+                        <td>${fieldType}</td>
+                    </tr>
+                `;
             });
             
-            children.push(new Table({
-                rows: tableRows,
-                width: { size: 100, type: "pct" }
-            }));
+            htmlContent += `
+                    </tbody>
+                </table>
+            `;
         }
         
-        children.push(new Paragraph({ text: "" })); // Empty line between sections
+        htmlContent += `</div>`;
+    });
+
+    htmlContent += `
+        </body>
+        </html>
+    `;
+
+    // Create a blob with the HTML content
+    const blob = new Blob([htmlContent], {
+        type: 'application/msword;charset=utf-8'
     });
     
-    const doc = new Document({
-        sections: [{
-            properties: {},
-            children: children
-        }]
-    });
-    
-    Packer.toBlob(doc).then(blob => {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'salesforce-layout.docx';
-        a.click();
-        URL.revokeObjectURL(url);
-        closeExportModal();
-    });
+    // Use FileSaver.js to save the file
+    saveAs(blob, 'salesforce-layout.doc');
+    closeExportModal();
 }
 
 function exportAsXLS() {
@@ -199,7 +189,7 @@ function exportAsXLS() {
         const fields = section.querySelectorAll('.field-item');
         fields.forEach(field => {
             const fieldName = field.querySelector('.field-name')?.value || 'Unnamed Field';
-            const fieldType = field.querySelector('.field-type')?.value || 'text';
+            const fieldType = field.querySelector('.field-type')?.selectedOptions[0]?.text || 'Text';
             wsData.push([fieldName, fieldType]);
         });
         
