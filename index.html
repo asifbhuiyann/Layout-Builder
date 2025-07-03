@@ -1,17 +1,19 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Salesforce Page Layout Builder</title>
     <link rel="stylesheet" href="style.css">
-    
+
     <!-- External libraries for export functionality -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 </head>
+
 <body>
     <!-- Navbar -->
     <nav class="navbar">
@@ -29,9 +31,9 @@
                 <button class="nav-btn" onclick="importLayout()">
                     <span>📥</span> Import
                 </button>
-                <button class="nav-btn primary" onclick="saveAsDraft()">
+                <!-- <button class="nav-btn primary" onclick="saveAsDraft()">
                     <span>💾</span> Save as Draft
-                </button>
+                </button> -->
             </div>
         </div>
     </nav>
@@ -40,7 +42,7 @@
     <main class="main-content">
         <div class="content-header">
             <h1>Salesforce Page Layout Builder</h1>
-            <p>Design and customize your Salesforce page layouts with our intuitive drag-and-drop interface</p>
+            <p>Design and customize your Salesforce page layouts</p>
         </div>
 
         <div class="layout-builder">
@@ -55,22 +57,40 @@
                     </button>
                 </div>
             </div>
-            
+
             <div class="canvas-area" id="layoutCanvas">
                 <div class="canvas-placeholder">
-                    <h3>Your Layout Canvas</h3>
-                    <p>Drag and drop components here to build your Salesforce page layout</p>
+                    <h3>Layout Design Canvas</h3>
+                    <p>Build your Salesforce page layout from Scratch or Import and Customize</p>
                 </div>
             </div>
         </div>
     </main>
 
-    <!-- Footer -->
-    <footer class="footer">
-        <p>&copy; All rights reserved - Asif Bhuiyan</p>
-    </footer>
+        <!-- Import Modal -->
+    <div id="importModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Import Layout</h2>
+                <span class="close" onclick="closeImportModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <p>Choose your import format:</p>
+                <div class="export-options">
+                    <button class="export-btn json-btn" onclick="importJSON()">
+                        <span>📄</span> Import JSON (Best Quality)
+                    </button>
+                    <button class="export-btn xml-btn" onclick="importXML()">
+                        <span>📋</span> Import XML
+                    </button>
+                    <button class="export-btn csv-btn" onclick="importCSV()">
+                        <span>📊</span> Import CSV/Excel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
-    <!-- Export Modal -->
     <div id="exportModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -89,11 +109,23 @@
                     <button class="export-btn xls-btn" onclick="exportAsXLS()">
                         <span>📊</span> Export as XLS
                     </button>
+                    <button class="export-btn json-btn" onclick="exportJSON()">
+                        <span>📦</span> Export as JSON
+                    </button>
+                    <button class="export-btn xml-btn" onclick="exportAsXML()">
+                        <span>🧾</span> Export as XML
+                    </button>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Footer -->
+    <footer class="footer">
+        <p>&copy; All rights reserved - Asif Bhuiyan</p>
+    </footer>
+
     <script src="script.js"></script>
 </body>
+
 </html>

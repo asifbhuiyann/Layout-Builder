@@ -9,51 +9,428 @@ function closeExportModal() {
     modal.style.display = 'none';
 }
 
+function showImportOptions() {
+    const modal = document.getElementById('importModal');
+    modal.style.display = 'block';
+}
+
+function closeImportModal() {
+    const modal = document.getElementById('importModal');
+    modal.style.display = 'none';
+}
+
 // Close modal when clicking outside
 window.onclick = function(event) {
-    const modal = document.getElementById('exportModal');
-    if (event.target === modal) {
-        modal.style.display = 'none';
+    const exportModal = document.getElementById('exportModal');
+    const importModal = document.getElementById('importModal');
+    
+    if (event.target === exportModal) {
+        exportModal.style.display = 'none';
+    }
+    if (event.target === importModal) {
+        importModal.style.display = 'none';
     }
 }
 
 function importLayout() {
-    alert('Import functionality will be implemented here');
-    console.log('Importing layout...');
+    showImportOptions();
 }
 
-// Save and Load Functions
-function saveAsDraft() {
-    try {
-        const layoutData = captureLayoutData();
-        localStorage.setItem('salesforce-layout-draft', JSON.stringify(layoutData));
-        
-        // Show success message
-        showNotification('Draft saved successfully!', 'success');
-        console.log('Draft saved to localStorage');
-    } catch (error) {
-        console.error('Error saving draft:', error);
-        showNotification('Error saving draft. Please try again.', 'error');
-    }
-}
-
-function loadDraft() {
-    try {
-        const savedData = localStorage.getItem('salesforce-layout-draft');
-        if (savedData) {
-            const layoutData = JSON.parse(savedData);
-            restoreLayoutData(layoutData);
-            showNotification('Draft loaded successfully!', 'success');
-            console.log('Draft loaded from localStorage');
-            return true;
+// Import Functions
+function importJSON() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    
+    input.onchange = function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const layoutData = JSON.parse(e.target.result);
+                    restoreLayoutData(layoutData);
+                    showNotification('JSON layout imported successfully!', 'success');
+                    closeImportModal();
+                } catch (error) {
+                    console.error('Error importing JSON:', error);
+                    showNotification('Error importing JSON file. Please check the format.', 'error');
+                }
+            };
+            reader.readAsText(file);
         }
-        return false;
-    } catch (error) {
-        console.error('Error loading draft:', error);
-        showNotification('Error loading draft.', 'error');
-        return false;
+    };
+    
+    input.click();
+}
+
+function importXML() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.xml';
+    
+    input.onchange = function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const xmlContent = e.target.result;
+                    parseXMLLayout(xmlContent);
+                    showNotification('XML layout imported successfully!', 'success');
+                    closeImportModal();
+                } catch (error) {
+                    console.error('Error importing XML:', error);
+                    showNotification('Error importing XML file. Please check the format.', 'error');
+                }
+            };
+            reader.readAsText(file);
+        }
+    };
+    
+    input.click();
+}
+
+function importCSV() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.csv,.xlsx,.xls';
+    
+    input.onchange = function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    if (file.name.endsWith('.csv')) {
+                        parseCSVLayout(e.target.result);
+                    } else {
+                        parseExcelLayout(e.target.result);
+                    }
+                    showNotification('File imported successfully!', 'success');
+                    closeImportModal();
+                } catch (error) {
+                    console.error('Error importing file:', error);
+                    showNotification('Error importing file. Please check the format.', 'error');
+                }
+            };
+            
+            if (file.name.endsWith('.csv')) {
+                reader.readAsText(file);
+            } else {
+                reader.readAsArrayBuffer(file);
+            }
+        }
+    };
+    
+    input.click();
+}
+
+function parseXMLLayout(xmlContent) {
+    const parser = new DOMParser();
+    const xmlDoc = parser.parseFromString(xmlContent, 'text/xml');
+    
+    // Clear existing layout
+    clearCanvas();
+    
+    // Extract layout name
+    const layoutNameElement = xmlDoc.querySelector('layoutName, Layout, title');
+    const layoutName = layoutNameElement ? layoutNameElement.textContent : 'Imported Layout';
+    
+    // Create first section
+    addComponent();
+    
+    // Set layout name
+    const firstSection = document.querySelector('.layout-section');
+    const layoutNameInput = firstSection.querySelector('.layout-name');
+    if (layoutNameInput) {
+        layoutNameInput.value = layoutName;
+    }
+    
+    // Extract sections
+    const sections = xmlDoc.querySelectorAll('section, Section, layoutSection');
+    if (sections.length === 0) {
+        // If no sections found, treat the whole document as fields
+        const fields = xmlDoc.querySelectorAll('field, Field, item');
+        addFieldsToSection('section-1', fields);
+    } else {
+        sections.forEach((section, index) => {
+            if (index > 0) {
+                addComponent(); // Add additional sections
+            }
+            
+            const sectionId = `section-${index + 1}`;
+            const sectionElement = document.getElementById(sectionId);
+            
+            // Set section title
+            const sectionTitle = section.getAttribute('name') || section.getAttribute('title') || `Section ${index + 1}`;
+            const sectionTitleInput = sectionElement.querySelector('.section-title');
+            if (sectionTitleInput) {
+                sectionTitleInput.value = sectionTitle;
+            }
+            
+            // Add fields
+            const fields = section.querySelectorAll('field, Field, item');
+            addFieldsToSection(sectionId, fields);
+        });
     }
 }
+
+function parseCSVLayout(csvContent) {
+    const lines = csvContent.split('\n');
+    const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+    
+    // Clear existing layout
+    clearCanvas();
+    
+    // Create first section
+    addComponent();
+    
+    // Set layout name
+    const firstSection = document.querySelector('.layout-section');
+    const layoutNameInput = firstSection.querySelector('.layout-name');
+    if (layoutNameInput) {
+        layoutNameInput.value = 'CSV Imported Layout';
+    }
+    
+    // Process data rows
+    for (let i = 1; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (line) {
+            const values = line.split(',').map(v => v.trim().replace(/"/g, ''));
+            
+            // Determine if this is a single or double column field
+            const columnSpan = values.length > 2 ? 2 : 1;
+            
+            if (columnSpan === 1) {
+                addField('section-1', 1);
+                const fields = document.querySelectorAll('.field-item');
+                const lastField = fields[fields.length - 1];
+                
+                const fieldName = values[0] || `Field ${i}`;
+                const fieldType = mapDataType(values[1] || 'text');
+                
+                const fieldNameInput = lastField.querySelector('.field-name');
+                const fieldTypeSelect = lastField.querySelector('.field-type');
+                
+                if (fieldNameInput) fieldNameInput.value = fieldName;
+                if (fieldTypeSelect) fieldTypeSelect.value = fieldType;
+            } else {
+                addField('section-1', 2);
+                const fieldRows = document.querySelectorAll('.field-row-double');
+                const lastRow = fieldRows[fieldRows.length - 1];
+                const fieldItems = lastRow.querySelectorAll('.field-item');
+                
+                // First field
+                const fieldName1 = values[0] || `Field ${i}A`;
+                const fieldType1 = mapDataType(values[1] || 'text');
+                
+                const fieldNameInput1 = fieldItems[0].querySelector('.field-name');
+                const fieldTypeSelect1 = fieldItems[0].querySelector('.field-type');
+                
+                if (fieldNameInput1) fieldNameInput1.value = fieldName1;
+                if (fieldTypeSelect1) fieldTypeSelect1.value = fieldType1;
+                
+                // Second field
+                if (fieldItems.length > 1) {
+                    const fieldName2 = values[2] || `Field ${i}B`;
+                    const fieldType2 = mapDataType(values[3] || 'text');
+                    
+                    const fieldNameInput2 = fieldItems[1].querySelector('.field-name');
+                    const fieldTypeSelect2 = fieldItems[1].querySelector('.field-type');
+                    
+                    if (fieldNameInput2) fieldNameInput2.value = fieldName2;
+                    if (fieldTypeSelect2) fieldTypeSelect2.value = fieldType2;
+                }
+            }
+        }
+    }
+}
+
+function parseExcelLayout(arrayBuffer) {
+    const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+    const sheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[sheetName];
+    const data = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+    
+    // Clear existing layout
+    clearCanvas();
+    
+    // Create first section
+    addComponent();
+    
+    // Set layout name
+    const firstSection = document.querySelector('.layout-section');
+    const layoutNameInput = firstSection.querySelector('.layout-name');
+    if (layoutNameInput) {
+        layoutNameInput.value = data[0] && data[0][0] ? data[0][0] : 'Excel Imported Layout';
+    }
+    
+    // Find the start of field data
+    let startRow = 1;
+    for (let i = 1; i < data.length; i++) {
+        if (data[i] && data[i][0] && data[i][0].toString().toLowerCase().includes('field')) {
+            startRow = i + 1;
+            break;
+        }
+    }
+    
+    // Process field data
+    for (let i = startRow; i < data.length; i++) {
+        const row = data[i];
+        if (row && row[0]) {
+            const fieldName = row[0];
+            const fieldType = mapDataType(row[1] || 'text');
+            
+            addField('section-1', 1);
+            const fields = document.querySelectorAll('.field-item');
+            const lastField = fields[fields.length - 1];
+            
+            const fieldNameInput = lastField.querySelector('.field-name');
+            const fieldTypeSelect = lastField.querySelector('.field-type');
+            
+            if (fieldNameInput) fieldNameInput.value = fieldName;
+            if (fieldTypeSelect) fieldTypeSelect.value = fieldType;
+        }
+    }
+}
+
+function addFieldsToSection(sectionId, fields) {
+    Array.from(fields).forEach(field => {
+        const fieldName = field.getAttribute('name') || field.getAttribute('label') || field.textContent || 'Unnamed Field';
+        const fieldType = mapDataType(field.getAttribute('type') || field.getAttribute('dataType') || 'text');
+        
+        addField(sectionId, 1);
+        const fieldItems = document.querySelectorAll('.field-item');
+        const lastField = fieldItems[fieldItems.length - 1];
+        
+        const fieldNameInput = lastField.querySelector('.field-name');
+        const fieldTypeSelect = lastField.querySelector('.field-type');
+        
+        if (fieldNameInput) fieldNameInput.value = fieldName;
+        if (fieldTypeSelect) fieldTypeSelect.value = fieldType;
+    });
+}
+
+function mapDataType(inputType) {
+    const typeMap = {
+        'string': 'text',
+        'varchar': 'text',
+        'char': 'text',
+        'int': 'number',
+        'integer': 'number',
+        'decimal': 'number',
+        'float': 'number',
+        'double': 'number',
+        'boolean': 'checkbox',
+        'bool': 'checkbox',
+        'date': 'date',
+        'datetime': 'datetime',
+        'timestamp': 'datetime',
+        'email': 'email',
+        'url': 'url',
+        'phone': 'phone',
+        'tel': 'phone',
+        'textarea': 'text-area',
+        'longtext': 'text-area-long',
+        'richtext': 'text-area-rich',
+        'select': 'picklist',
+        'dropdown': 'picklist',
+        'list': 'picklist',
+        'multiselect': 'picklist-multi-select',
+        'lookup': 'lookup-relationship',
+        'reference': 'lookup-relationship',
+        'currency': 'currency',
+        'percent': 'percent',
+        'percentage': 'percent',
+        'location': 'geolocation',
+        'geo': 'geolocation',
+        'encrypted': 'text-encrypted',
+        'time': 'time',
+        'autonumber': 'auto-number',
+        'sequence': 'auto-number',
+        'formula': 'formula',
+        'calculated': 'formula',
+        'rollup': 'rollup-summary',
+        'summary': 'rollup-summary'
+    };
+    
+    const normalizedType = inputType.toLowerCase().replace(/[^a-z]/g, '');
+    return typeMap[normalizedType] || 'text';
+}
+
+function exportJSON() {
+    const layoutData = captureLayoutData();
+    const dataStr = JSON.stringify(layoutData, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(dataBlob);
+    link.download = 'salesforce-layout.json';
+    link.click();
+    
+    closeExportModal();
+    showNotification('JSON layout exported successfully!', 'success');
+}
+
+function exportAsXML() {
+    const layoutData = captureLayoutData();
+
+    const xmlDoc = document.implementation.createDocument('', '', null);
+    const root = xmlDoc.createElement('layout');
+    root.setAttribute('timestamp', layoutData.timestamp);
+
+    layoutData.sections.forEach(section => {
+        const sectionElement = xmlDoc.createElement('section');
+        sectionElement.setAttribute('id', section.id);
+
+        if (section.layoutName) {
+            const nameEl = xmlDoc.createElement('layoutName');
+            nameEl.textContent = section.layoutName;
+            sectionElement.appendChild(nameEl);
+        }
+
+        if (section.recordType) {
+            const recordTypeEl = xmlDoc.createElement('recordType');
+            recordTypeEl.textContent = section.recordType;
+            sectionElement.appendChild(recordTypeEl);
+        }
+
+        if (section.sectionTitle) {
+            const titleEl = xmlDoc.createElement('sectionTitle');
+            titleEl.textContent = section.sectionTitle;
+            sectionElement.appendChild(titleEl);
+        }
+
+        section.fields.forEach(field => {
+            const fieldEl = xmlDoc.createElement('field');
+            fieldEl.setAttribute('id', field.id);
+            fieldEl.setAttribute('name', field.name);
+            fieldEl.setAttribute('type', field.type);
+            fieldEl.setAttribute('columnSpan', field.columnSpan);
+            if (field.rowId) {
+                fieldEl.setAttribute('rowId', field.rowId);
+            }
+            sectionElement.appendChild(fieldEl);
+        });
+
+        root.appendChild(sectionElement);
+    });
+
+    xmlDoc.appendChild(root);
+    const serializer = new XMLSerializer();
+    const xmlStr = serializer.serializeToString(xmlDoc);
+    const blob = new Blob([xmlStr], { type: 'application/xml' });
+
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'salesforce-layout.xml';
+    link.click();
+
+    closeExportModal();
+    showNotification('XML layout exported successfully!', 'success');
+}
+
 
 function captureLayoutData() {
     const canvas = document.getElementById('layoutCanvas');
@@ -70,10 +447,17 @@ function captureLayoutData() {
     sections.forEach(section => {
         const sectionData = {
             id: section.id,
+            layoutName: '',
             recordType: '',
             sectionTitle: '',
             fields: []
         };
+
+        // Get layout name (only for first section)
+        const layoutNameInput = section.querySelector('.layout-name');
+        if (layoutNameInput) {
+            sectionData.layoutName = layoutNameInput.value;
+        }
 
         // Get record type (only for first section)
         const recordTypeInput = section.querySelector('.record-type');
@@ -153,6 +537,11 @@ function restoreLayoutData(layoutData) {
         const sectionId = sectionData.id;
         const isFirstSection = index === 0;
         
+        // Layout name field only for the first section
+        const layoutNameField = isFirstSection ? 
+            `<input type="text" class="layout-name" value="${sectionData.layoutName || 'My Salesforce Layout'}" placeholder="Layout Name">` : 
+            '';
+
         // Record type field only for the first section
         const recordTypeField = isFirstSection ? 
             `<input type="text" class="record-type" value="${sectionData.recordType}" placeholder="Record Type Name">` : 
@@ -162,6 +551,7 @@ function restoreLayoutData(layoutData) {
             <div class="layout-section" id="${sectionId}">
                 <div class="section-header">
                     <div class="section-info">
+                        ${layoutNameField}
                         ${recordTypeField}
                         <input type="text" class="section-title" value="${sectionData.sectionTitle}" placeholder="Section Title">
                     </div>
@@ -298,16 +688,6 @@ function restoreLayoutData(layoutData) {
     console.log('Layout restored successfully');
 }
 
-function clearDraft() {
-    try {
-        localStorage.removeItem('salesforce-layout-draft');
-        showNotification('Draft cleared successfully!', 'success');
-        console.log('Draft cleared from localStorage');
-    } catch (error) {
-        console.error('Error clearing draft:', error);
-        showNotification('Error clearing draft.', 'error');
-    }
-}
 
 // Notification system
 function showNotification(message, type = 'info') {
@@ -422,15 +802,19 @@ function exportAsDOCX() {
         return;
     }
 
+    // Get layout name from first section
+    const layoutNameInput = sections[0].querySelector('.layout-name');
+    const layoutName = getFieldValue(layoutNameInput, 'Salesforce Page Layout');
+
     let htmlContent = `
         <!DOCTYPE html>
         <html>
         <head>
             <meta charset="UTF-8">
-            <title>Salesforce Page Layout</title>
+            <title>${layoutName}</title>
             <style>
                 body { font-family: Arial, sans-serif; margin: 20px; }
-                h1 { color: #1E88E5; text-align: center; }
+                h1 { color: #1E88E5; text-align: center; font-size: 2rem; }
                 h2 { color: #1565C0; border-bottom: 2px solid #E3F2FD; padding-bottom: 5px; }
                 h3 { color: #8BC34A; margin-top: 20px; }
                 table { width: 100%; border-collapse: collapse; margin: 10px 0; }
@@ -443,7 +827,7 @@ function exportAsDOCX() {
             </style>
         </head>
         <body>
-            <h1>Salesforce Page Layout</h1>
+            <h1>${layoutName}</h1>
     `;
 
     sections.forEach((section, index) => {
@@ -509,7 +893,7 @@ function exportAsDOCX() {
     });
     
     // Use FileSaver.js to save the file
-    saveAs(blob, 'salesforce-layout.doc');
+    saveAs(blob, `${layoutName.replace(/[^a-zA-Z0-9]/g, '-')}.doc`);
     closeExportModal();
 }
 
@@ -522,11 +906,15 @@ function exportAsXLS() {
         return;
     }
 
+    // Get layout name from first section
+    const layoutNameInput = sections[0].querySelector('.layout-name');
+    const layoutName = getFieldValue(layoutNameInput, 'Salesforce Page Layout');
+
     const wb = XLSX.utils.book_new();
     const wsData = [];
     
-    // Add header
-    wsData.push(['Salesforce Page Layout']);
+    // Add header with layout name
+    wsData.push([layoutName]);
     wsData.push([]); // Empty row
     
     sections.forEach((section, index) => {
@@ -571,10 +959,10 @@ function exportAsXLS() {
     ws['!cols'] = colWidths.map(width => ({ wch: Math.min(width + 5, 50) }));
     
     // Style the header
-    ws['A1'] = { v: 'Salesforce Page Layout', t: 's', s: { font: { bold: true, sz: 16 } } };
+    ws['A1'] = { v: layoutName, t: 's', s: { font: { bold: true, sz: 16 } } };
     
     XLSX.utils.book_append_sheet(wb, ws, 'Layout');
-    XLSX.writeFile(wb, 'salesforce-layout.xlsx');
+    XLSX.writeFile(wb, `${layoutName.replace(/[^a-zA-Z0-9]/g, '-')}.xlsx`);
     closeExportModal();
 }
 
@@ -595,6 +983,11 @@ function addComponent() {
     sectionCounter++;
     const sectionId = `section-${sectionCounter}`;
     
+    // Layout name field only for the first section
+    const layoutNameField = sectionCounter === 1 ? 
+        `<input type="text" class="layout-name" value="My Salesforce Layout" placeholder="Layout Name">` : 
+        '';
+
     // Record type field only for the first section
     const recordTypeField = sectionCounter === 1 ? 
         `<input type="text" class="record-type" value="Record Type ${sectionCounter}" placeholder="Record Type Name">` : 
@@ -604,6 +997,7 @@ function addComponent() {
         <div class="layout-section" id="${sectionId}">
             <div class="section-header">
                 <div class="section-info">
+                    ${layoutNameField}
                     ${recordTypeField}
                     <input type="text" class="section-title" value="Header Information ${sectionCounter}" placeholder="Section Title">
                 </div>
