@@ -447,6 +447,7 @@ function captureLayoutData() {
     sections.forEach(section => {
         const sectionData = {
             id: section.id,
+            type: section.classList.contains('related-list-section') ? 'related-list' : 'section',
             layoutName: '',
             recordType: '',
             sectionTitle: '',
@@ -479,7 +480,8 @@ function captureLayoutData() {
                 name: '',
                 type: '',
                 columnSpan: 1,
-                rowId: ''
+                rowId: '',
+                isRequired: field.classList.contains('required-field')
             };
 
             // Get field name
@@ -536,28 +538,30 @@ function restoreLayoutData(layoutData) {
 
         const sectionId = sectionData.id;
         const isFirstSection = index === 0;
+        const isRelatedList = sectionData.type === 'related-list';
         
         // Layout name field only for the first section
-        const layoutNameField = isFirstSection ? 
+        const layoutNameField = isFirstSection && !isRelatedList ? 
             `<input type="text" class="layout-name" value="${sectionData.layoutName || 'My Salesforce Layout'}" placeholder="Layout Name">` : 
             '';
 
         // Record type field only for the first section
-        const recordTypeField = isFirstSection ? 
+        const recordTypeField = isFirstSection && !isRelatedList ? 
             `<input type="text" class="record-type" value="${sectionData.recordType}" placeholder="Record Type Name">` : 
             '';
         
         const sectionHTML = `
-            <div class="layout-section" id="${sectionId}">
-                <div class="section-header">
+            <div class="layout-section ${isRelatedList ? 'related-list-section' : ''}" id="${sectionId}">
+                <div class="section-header ${isRelatedList ? 'related-list-header' : ''}">
                     <div class="section-info">
                         ${layoutNameField}
                         ${recordTypeField}
-                        <input type="text" class="section-title" value="${sectionData.sectionTitle}" placeholder="Section Title">
+                        <input type="text" class="section-title ${isRelatedList ? 'related-list-title' : ''}" value="${sectionData.sectionTitle}" placeholder="${isRelatedList ? 'Related List Name' : 'Section Title'}">
                     </div>
                     <div class="section-controls">
                         <button class="control-btn" onclick="addField('${sectionId}', 1)">Add Field - 1 Col</button>
                         <button class="control-btn" onclick="addField('${sectionId}', 2)">Add Field - 2 Col</button>
+                        ${!isRelatedList ? '<button class="control-btn related-list-btn" onclick="addRelatedList()">Add Related List</button>' : ''}
                         <button class="control-btn danger" onclick="removeSection('${sectionId}')">×</button>
                     </div>
                 </div>
@@ -578,7 +582,8 @@ function restoreLayoutData(layoutData) {
                 // Single column field
                 const fieldHTML = `
                     <div class="field-row field-row-single" id="${fieldData.id}">
-                        <div class="field-item field-single-col">
+                        <div class="field-item field-single-col ${fieldData.isRequired ? 'required-field' : ''}">
+                            <div class="required-indicator ${fieldData.isRequired ? 'active' : ''}"></div>
                             <input type="text" class="field-name" placeholder="Field Name" value="${fieldData.name}">
                             <select class="field-type">
                                 <option value="auto-number">Auto Number</option>
@@ -606,6 +611,7 @@ function restoreLayoutData(layoutData) {
                                 <option value="time">Time</option>
                                 <option value="url">URL</option>
                             </select>
+                            <button class="required-toggle ${fieldData.isRequired ? 'active' : ''}" onclick="toggleRequired('${fieldData.id}')" title="Toggle required field">*</button>
                             <button class="remove-field" onclick="removeField('${fieldData.id}')" title="Remove field">×</button>
                         </div>
                     </div>
@@ -629,7 +635,8 @@ function restoreLayoutData(layoutData) {
                 
                 rowFields.forEach(rowField => {
                     rowHTML += `
-                        <div class="field-item field-double-col" id="${rowField.id}">
+                        <div class="field-item field-double-col ${rowField.isRequired ? 'required-field' : ''}" id="${rowField.id}">
+                            <div class="required-indicator ${rowField.isRequired ? 'active' : ''}"></div>
                             <input type="text" class="field-name" placeholder="Field Name" value="${rowField.name}">
                             <select class="field-type">
                                 <option value="auto-number">Auto Number</option>
@@ -657,6 +664,7 @@ function restoreLayoutData(layoutData) {
                                 <option value="time">Time</option>
                                 <option value="url">URL</option>
                             </select>
+                            <button class="required-toggle ${rowField.isRequired ? 'active' : ''}" onclick="toggleRequired('${rowField.id}')" title="Toggle required field">*</button>
                             <button class="remove-field" onclick="removeFieldFromRow('${fieldData.rowId}', '${rowField.id}')" title="Remove field">×</button>
                         </div>
                     `;
@@ -1004,6 +1012,7 @@ function addComponent() {
                 <div class="section-controls">
                     <button class="control-btn" onclick="addField('${sectionId}', 1)">Add Field - 1 Col</button>
                     <button class="control-btn" onclick="addField('${sectionId}', 2)">Add Field - 2 Col</button>
+                    <button class="control-btn related-list-btn" onclick="addRelatedList()">Add Related List</button>
                     <button class="control-btn danger" onclick="removeSection('${sectionId}')">×</button>
                 </div>
             </div>
@@ -1016,6 +1025,41 @@ function addComponent() {
     // Always append to the end (after existing components)
     canvas.insertAdjacentHTML('beforeend', sectionHTML);
     console.log(`Section ${sectionId} added`);
+}
+
+function addRelatedList() {
+    const canvas = document.getElementById('layoutCanvas');
+    
+    // Remove placeholder if it exists
+    const placeholder = canvas.querySelector('.canvas-placeholder');
+    if (placeholder) {
+        placeholder.remove();
+        canvas.classList.add('has-content');
+    }
+
+    sectionCounter++;
+    const sectionId = `related-list-${sectionCounter}`;
+    
+    const relatedListHTML = `
+        <div class="layout-section related-list-section" id="${sectionId}">
+            <div class="section-header related-list-header">
+                <div class="section-info">
+                    <input type="text" class="section-title related-list-title" value="Related List ${sectionCounter}" placeholder="Related List Name">
+                </div>
+                <div class="section-controls">
+                    <button class="control-btn" onclick="addField('${sectionId}', 1)">Add Field - 1 Col</button>
+                    <button class="control-btn" onclick="addField('${sectionId}', 2)">Add Field - 2 Col</button>
+                    <button class="control-btn danger" onclick="removeSection('${sectionId}')">×</button>
+                </div>
+            </div>
+            <div class="section-content">
+                <div class="fields-container" id="${sectionId}-fields"></div>
+            </div>
+        </div>
+    `;
+    
+    canvas.insertAdjacentHTML('beforeend', relatedListHTML);
+    console.log(`Related List ${sectionId} added`);
 }
 
 function addField(sectionId, columnSpan = 2) {
@@ -1031,6 +1075,7 @@ function addField(sectionId, columnSpan = 2) {
         fieldHTML = `
             <div class="field-row field-row-single" id="${fieldId}">
                 <div class="field-item field-single-col">
+                    <div class="required-indicator"></div>
                     <input type="text" class="field-name" placeholder="Field Name" value="">
                     <select class="field-type">
                         <option value="auto-number">Auto Number</option>
@@ -1058,6 +1103,7 @@ function addField(sectionId, columnSpan = 2) {
                         <option value="time">Time</option>
                         <option value="url">URL</option>
                     </select>
+                    <button class="required-toggle" onclick="toggleRequired('${fieldId}')" title="Toggle required field">*</button>
                     <button class="remove-field" onclick="removeField('${fieldId}')" title="Remove field">×</button>
                 </div>
             </div>
@@ -1071,6 +1117,7 @@ function addField(sectionId, columnSpan = 2) {
         fieldHTML = `
             <div class="field-row field-row-double" id="${rowId}">
                 <div class="field-item field-double-col" id="${fieldId1}">
+                    <div class="required-indicator"></div>
                     <input type="text" class="field-name" placeholder="Field Name" value="">
                     <select class="field-type">
                         <option value="auto-number">Auto Number</option>
@@ -1098,9 +1145,11 @@ function addField(sectionId, columnSpan = 2) {
                         <option value="time">Time</option>
                         <option value="url">URL</option>
                     </select>
+                    <button class="required-toggle" onclick="toggleRequired('${fieldId1}')" title="Toggle required field">*</button>
                     <button class="remove-field" onclick="removeFieldFromRow('${rowId}', '${fieldId1}')" title="Remove field">×</button>
                 </div>
                 <div class="field-item field-double-col" id="${fieldId2}">
+                    <div class="required-indicator"></div>
                     <input type="text" class="field-name" placeholder="Field Name" value="">
                     <select class="field-type">
                         <option value="auto-number">Auto Number</option>
@@ -1128,6 +1177,7 @@ function addField(sectionId, columnSpan = 2) {
                         <option value="time">Time</option>
                         <option value="url">URL</option>
                     </select>
+                    <button class="required-toggle" onclick="toggleRequired('${fieldId2}')" title="Toggle required field">*</button>
                     <button class="remove-field" onclick="removeFieldFromRow('${rowId}', '${fieldId2}')" title="Remove field">×</button>
                 </div>
             </div>
@@ -1137,6 +1187,25 @@ function addField(sectionId, columnSpan = 2) {
     // Add the field row to the container
     fieldsContainer.insertAdjacentHTML('beforeend', fieldHTML);
     console.log(`Field added (${columnSpan} column${columnSpan > 1 ? 's' : ''})`);
+}
+
+function toggleRequired(fieldId) {
+    const field = document.getElementById(fieldId);
+    if (field) {
+        const fieldItem = field.querySelector('.field-item') || field;
+        const requiredIndicator = fieldItem.querySelector('.required-indicator');
+        const requiredToggle = fieldItem.querySelector('.required-toggle');
+        
+        if (fieldItem.classList.contains('required-field')) {
+            fieldItem.classList.remove('required-field');
+            requiredIndicator.classList.remove('active');
+            requiredToggle.classList.remove('active');
+        } else {
+            fieldItem.classList.add('required-field');
+            requiredIndicator.classList.add('active');
+            requiredToggle.classList.add('active');
+        }
+    }
 }
 
 function removeField(fieldId) {
@@ -1180,6 +1249,7 @@ function addFieldToRow(rowId) {
         
         const newFieldHTML = `
             <div class="field-item field-double-col" id="${newFieldId}">
+                <div class="required-indicator"></div>
                 <input type="text" class="field-name" placeholder="Field Name" value="">
                 <select class="field-type">
                     <option value="auto-number">Auto Number</option>
@@ -1207,6 +1277,7 @@ function addFieldToRow(rowId) {
                     <option value="time">Time</option>
                     <option value="url">URL</option>
                 </select>
+                <button class="required-toggle" onclick="toggleRequired('${newFieldId}')" title="Toggle required field">*</button>
                 <button class="remove-field" onclick="removeFieldFromRow('${rowId}', '${newFieldId}')" title="Remove field">×</button>
             </div>
         `;
