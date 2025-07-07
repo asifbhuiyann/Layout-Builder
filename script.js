@@ -23,6 +23,7 @@ function closeImportModal() {
 window.onclick = function(event) {
     const exportModal = document.getElementById('exportModal');
     const importModal = document.getElementById('importModal');
+    const commentModal = document.getElementById('commentModal');
     
     if (event.target === exportModal) {
         exportModal.style.display = 'none';
@@ -30,10 +31,87 @@ window.onclick = function(event) {
     if (event.target === importModal) {
         importModal.style.display = 'none';
     }
+    if (event.target === commentModal) {
+        commentModal.style.display = 'none';
+    }
 }
 
 function importLayout() {
     showImportOptions();
+}
+
+// Comment Modal Functions
+let currentCommentFieldId = null;
+
+function openCommentModal(fieldId) {
+    currentCommentFieldId = fieldId;
+    const modal = document.getElementById('commentModal');
+    const textarea = document.getElementById('commentTextarea');
+    const field = document.getElementById(fieldId);
+    const fieldItem = field.classList.contains('field-item') ? field : field.querySelector('.field-item');
+    
+    // Load existing comment if any
+    const existingComment = fieldItem.getAttribute('data-comment') || '';
+    textarea.value = existingComment;
+    
+    modal.style.display = 'block';
+    textarea.focus();
+}
+
+function closeCommentModal() {
+    const modal = document.getElementById('commentModal');
+    modal.style.display = 'none';
+    currentCommentFieldId = null;
+}
+
+function saveComment() {
+    if (!currentCommentFieldId) return;
+    
+    const textarea = document.getElementById('commentTextarea');
+    const comment = textarea.value.trim();
+    const field = document.getElementById(currentCommentFieldId);
+    const fieldItem = field.classList.contains('field-item') ? field : field.querySelector('.field-item');
+    const commentBtn = fieldItem.querySelector('.comment-btn');
+    
+    if (comment) {
+        fieldItem.setAttribute('data-comment', comment);
+        fieldItem.classList.add('has-comment');
+        commentBtn.classList.add('has-comment');
+        showNotification('Comment saved successfully!', 'success');
+    } else {
+        fieldItem.removeAttribute('data-comment');
+        fieldItem.classList.remove('has-comment');
+        commentBtn.classList.remove('has-comment');
+        showNotification('Comment removed', 'info');
+    }
+    
+    closeCommentModal();
+}
+
+// Create comment modal if it doesn't exist
+function createCommentModal() {
+    if (document.getElementById('commentModal')) return;
+    
+    const modalHTML = `
+        <div id="commentModal" class="modal">
+            <div class="modal-content comment-modal-content">
+                <div class="modal-header">
+                    <h2>Field Comment</h2>
+                    <span class="close" onclick="closeCommentModal()">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <p>Add a comment or note for this field:</p>
+                    <textarea id="commentTextarea" class="comment-textarea" placeholder="Enter your comment here..." rows="4"></textarea>
+                    <div class="comment-actions">
+                        <button class="btn-primary" onclick="saveComment()">Save Comment</button>
+                        <button class="btn-secondary" onclick="closeCommentModal()">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
 }
 
 // Import Functions
@@ -383,6 +461,7 @@ function exportAsXML() {
     layoutData.sections.forEach(section => {
         const sectionElement = xmlDoc.createElement('section');
         sectionElement.setAttribute('id', section.id);
+        sectionElement.setAttribute('type', section.type);
 
         if (section.layoutName) {
             const nameEl = xmlDoc.createElement('layoutName');
@@ -408,8 +487,14 @@ function exportAsXML() {
             fieldEl.setAttribute('name', field.name);
             fieldEl.setAttribute('type', field.type);
             fieldEl.setAttribute('columnSpan', field.columnSpan);
+            fieldEl.setAttribute('isRequired', field.isRequired);
             if (field.rowId) {
                 fieldEl.setAttribute('rowId', field.rowId);
+            }
+            if (field.comment) {
+                const commentEl = xmlDoc.createElement('comment');
+                commentEl.textContent = field.comment;
+                fieldEl.appendChild(commentEl);
             }
             sectionElement.appendChild(fieldEl);
         });
@@ -481,7 +566,8 @@ function captureLayoutData() {
                 type: '',
                 columnSpan: 1,
                 rowId: '',
-                isRequired: field.classList.contains('required-field')
+                isRequired: field.classList.contains('required-field'),
+                comment: field.getAttribute('data-comment') || ''
             };
 
             // Get field name
@@ -580,9 +666,10 @@ function restoreLayoutData(layoutData) {
         sectionData.fields.forEach(fieldData => {
             if (fieldData.columnSpan === 1) {
                 // Single column field
+                const hasComment = fieldData.comment ? 'has-comment' : '';
                 const fieldHTML = `
                     <div class="field-row field-row-single" id="${fieldData.id}">
-                        <div class="field-item field-single-col ${fieldData.isRequired ? 'required-field' : ''}">
+                        <div class="field-item field-single-col ${fieldData.isRequired ? 'required-field' : ''} ${hasComment}" ${fieldData.comment ? `data-comment="${fieldData.comment}"` : ''}>
                             <div class="required-indicator ${fieldData.isRequired ? 'active' : ''}"></div>
                             <input type="text" class="field-name" placeholder="Field Name" value="${fieldData.name}">
                             <select class="field-type">
@@ -611,6 +698,7 @@ function restoreLayoutData(layoutData) {
                                 <option value="time">Time</option>
                                 <option value="url">URL</option>
                             </select>
+                            <button class="comment-btn ${hasComment}" onclick="openCommentModal('${fieldData.id}')" title="Add/Edit comment">💬</button>
                             <button class="required-toggle ${fieldData.isRequired ? 'active' : ''}" onclick="toggleRequired('${fieldData.id}')" title="Toggle required field">*</button>
                             <button class="remove-field" onclick="removeField('${fieldData.id}')" title="Remove field">×</button>
                         </div>
@@ -634,8 +722,9 @@ function restoreLayoutData(layoutData) {
                 let rowHTML = `<div class="field-row field-row-double" id="${fieldData.rowId}">`;
                 
                 rowFields.forEach(rowField => {
+                    const hasComment = rowField.comment ? 'has-comment' : '';
                     rowHTML += `
-                        <div class="field-item field-double-col ${rowField.isRequired ? 'required-field' : ''}" id="${rowField.id}">
+                        <div class="field-item field-double-col ${rowField.isRequired ? 'required-field' : ''} ${hasComment}" id="${rowField.id}" ${rowField.comment ? `data-comment="${rowField.comment}"` : ''}>
                             <div class="required-indicator ${rowField.isRequired ? 'active' : ''}"></div>
                             <input type="text" class="field-name" placeholder="Field Name" value="${rowField.name}">
                             <select class="field-type">
@@ -664,6 +753,7 @@ function restoreLayoutData(layoutData) {
                                 <option value="time">Time</option>
                                 <option value="url">URL</option>
                             </select>
+                            <button class="comment-btn ${hasComment}" onclick="openCommentModal('${rowField.id}')" title="Add/Edit comment">💬</button>
                             <button class="required-toggle ${rowField.isRequired ? 'active' : ''}" onclick="toggleRequired('${rowField.id}')" title="Toggle required field">*</button>
                             <button class="remove-field" onclick="removeFieldFromRow('${fieldData.rowId}', '${rowField.id}')" title="Remove field">×</button>
                         </div>
@@ -750,31 +840,44 @@ function exportAsPDF() {
         return;
     }
 
-    // Temporarily expand field inputs to show full text
-    const fieldInputs = canvas.querySelectorAll('.field-name');
-    const originalStyles = [];
+    // Create a copy of the canvas for PDF export
+    const clonedCanvas = canvas.cloneNode(true);
     
-    fieldInputs.forEach((input, index) => {
-        originalStyles[index] = {
-            width: input.style.width,
-            minWidth: input.style.minWidth
-        };
+    // Add comment tooltips to the cloned canvas
+    const fieldItems = clonedCanvas.querySelectorAll('.field-item');
+    fieldItems.forEach(field => {
+        const comment = field.getAttribute('data-comment');
+        if (comment) {
+            const commentDisplay = document.createElement('div');
+            commentDisplay.style.cssText = 'background: #fffacd; padding: 4px 8px; border-radius: 4px; font-size: 10px; margin-top: 4px; border: 1px solid #ffd700;';
+            commentDisplay.textContent = `📝 ${comment}`;
+            field.appendChild(commentDisplay);
+        }
+    });
+
+    // Temporarily expand field inputs to show full text
+    const fieldInputs = clonedCanvas.querySelectorAll('.field-name');
+    fieldInputs.forEach(input => {
         input.style.width = 'auto';
         input.style.minWidth = input.scrollWidth + 'px';
     });
 
-    html2canvas(canvas, {
+    // Create a temporary container
+    const tempContainer = document.createElement('div');
+    tempContainer.style.position = 'absolute';
+    tempContainer.style.left = '-9999px';
+    tempContainer.appendChild(clonedCanvas);
+    document.body.appendChild(tempContainer);
+
+    html2canvas(clonedCanvas, {
         scale: 2,
         useCORS: true,
         backgroundColor: '#f5f5f5',
-        width: canvas.scrollWidth,
-        height: canvas.scrollHeight
+        width: clonedCanvas.scrollWidth,
+        height: clonedCanvas.scrollHeight
     }).then(canvasElement => {
-        // Restore original styles
-        fieldInputs.forEach((input, index) => {
-            input.style.width = originalStyles[index].width;
-            input.style.minWidth = originalStyles[index].minWidth;
-        });
+        // Remove temporary container
+        document.body.removeChild(tempContainer);
 
         const { jsPDF } = window.jspdf;
         const pdf = new jsPDF();
@@ -798,6 +901,7 @@ function exportAsPDF() {
 
         pdf.save('salesforce-layout.pdf');
         closeExportModal();
+        showNotification('PDF exported with comments displayed!', 'success');
     });
 }
 
@@ -832,6 +936,9 @@ function exportAsDOCX() {
                 .section { margin: 20px 0; }
                 .field-name { max-width: 200px; word-wrap: break-word; }
                 .field-type { max-width: 150px; word-wrap: break-word; }
+                .field-comment { font-style: italic; color: #666; background-color: #fffacd; padding: 4px; }
+                .required { color: #dc3545; font-weight: bold; }
+                .related-list-section { background-color: #f0fff0; border-left: 4px solid #8BC34A; padding-left: 10px; }
             </style>
         </head>
         <body>
@@ -839,19 +946,20 @@ function exportAsDOCX() {
     `;
 
     sections.forEach((section, index) => {
+        const isRelatedList = section.classList.contains('related-list-section');
         const recordTypeInput = section.querySelector('.record-type');
         const sectionTitleInput = section.querySelector('.section-title');
         
         const recordType = getFieldValue(recordTypeInput, '');
         const sectionTitle = getFieldValue(sectionTitleInput, `Section ${index + 1}`);
         
-        htmlContent += `<div class="section">`;
+        htmlContent += `<div class="section ${isRelatedList ? 'related-list-section' : ''}">`;
         
         if (recordType) {
             htmlContent += `<div class="record-type"><strong>Record Type:</strong> ${recordType}</div>`;
         }
         
-        htmlContent += `<h3>${sectionTitle}</h3>`;
+        htmlContent += `<h3>${isRelatedList ? '📋 ' : ''}${sectionTitle}</h3>`;
         
         const fields = section.querySelectorAll('.field-item');
         if (fields.length > 0) {
@@ -861,6 +969,8 @@ function exportAsDOCX() {
                         <tr>
                             <th>Field Name</th>
                             <th>Data Type</th>
+                            <th>Required</th>
+                            <th>Comments</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -869,6 +979,8 @@ function exportAsDOCX() {
             fields.forEach((field, fieldIndex) => {
                 const fieldNameInput = field.querySelector('.field-name');
                 const fieldTypeSelect = field.querySelector('.field-type');
+                const isRequired = field.classList.contains('required-field');
+                const comment = field.getAttribute('data-comment') || '';
                 
                 const fieldName = getFieldValue(fieldNameInput, `Field ${fieldIndex + 1}`);
                 const fieldType = getSelectedOptionText(fieldTypeSelect, 'Text');
@@ -877,6 +989,8 @@ function exportAsDOCX() {
                     <tr>
                         <td class="field-name">${fieldName}</td>
                         <td class="field-type">${fieldType}</td>
+                        <td class="required">${isRequired ? 'Yes ✓' : 'No'}</td>
+                        <td class="field-comment">${comment ? '📝 ' + comment : '-'}</td>
                     </tr>
                 `;
             });
@@ -891,6 +1005,14 @@ function exportAsDOCX() {
     });
 
     htmlContent += `
+            <div style="margin-top: 40px; padding: 20px; background-color: #f5f5f5; border-radius: 8px;">
+                <h4 style="color: #666;">Legend:</h4>
+                <ul style="list-style: none; padding-left: 0;">
+                    <li>✓ - Required Field</li>
+                    <li>📝 - Field has comment/note</li>
+                    <li>📋 - Related List Section</li>
+                </ul>
+            </div>
         </body>
         </html>
     `;
@@ -903,6 +1025,7 @@ function exportAsDOCX() {
     // Use FileSaver.js to save the file
     saveAs(blob, `${layoutName.replace(/[^a-zA-Z0-9]/g, '-')}.doc`);
     closeExportModal();
+    showNotification('DOCX exported with all comments and details!', 'success');
 }
 
 function exportAsXLS() {
@@ -937,17 +1060,19 @@ function exportAsXLS() {
             wsData.push([`Record Type: ${recordType}`]);
         }
         wsData.push([sectionTitle]);
-        wsData.push(['Field Name', 'Data Type']); // Header row
+        wsData.push(['Field Name', 'Data Type', 'Required', 'Comments']); // Header row
         
         const fields = section.querySelectorAll('.field-item');
         fields.forEach((field, fieldIndex) => {
             const fieldNameInput = field.querySelector('.field-name');
             const fieldTypeSelect = field.querySelector('.field-type');
+            const isRequired = field.classList.contains('required-field');
+            const comment = field.getAttribute('data-comment') || '';
             
             const fieldName = getFieldValue(fieldNameInput, `Field ${fieldIndex + 1}`);
             const fieldType = getSelectedOptionText(fieldTypeSelect, 'Text');
             
-            wsData.push([fieldName, fieldType]);
+            wsData.push([fieldName, fieldType, isRequired ? 'Yes' : 'No', comment]);
         });
         
         wsData.push([]); // Empty row between sections
@@ -1103,8 +1228,11 @@ function addField(sectionId, columnSpan = 2) {
                         <option value="time">Time</option>
                         <option value="url">URL</option>
                     </select>
-                    <button class="required-toggle" onclick="toggleRequired('${fieldId}')" title="Toggle required field">*</button>
-                    <button class="remove-field" onclick="removeField('${fieldId}')" title="Remove field">×</button>
+                    <div class="field-actions">
+                        <button class="comment-btn" onclick="openCommentModal('${fieldId}')" title="Add/Edit comment">💬</button>
+                        <button class="required-toggle" onclick="toggleRequired('${fieldId}')" title="Toggle required field">*</button>
+                        <button class="remove-field" onclick="removeField('${fieldId}')" title="Remove field">×</button>
+                    </div>
                 </div>
             </div>
         `;
@@ -1145,8 +1273,11 @@ function addField(sectionId, columnSpan = 2) {
                         <option value="time">Time</option>
                         <option value="url">URL</option>
                     </select>
-                    <button class="required-toggle" onclick="toggleRequired('${fieldId1}')" title="Toggle required field">*</button>
-                    <button class="remove-field" onclick="removeFieldFromRow('${rowId}', '${fieldId1}')" title="Remove field">×</button>
+                    <div class="field-actions">
+                        <button class="comment-btn" onclick="openCommentModal('${fieldId1}')" title="Add/Edit comment">💬</button>
+                        <button class="required-toggle" onclick="toggleRequired('${fieldId1}')" title="Toggle required field">*</button>
+                        <button class="remove-field" onclick="removeFieldFromRow('${rowId}', '${fieldId1}')" title="Remove field">×</button>
+                    </div>
                 </div>
                 <div class="field-item field-double-col" id="${fieldId2}">
                     <div class="required-indicator"></div>
@@ -1177,8 +1308,11 @@ function addField(sectionId, columnSpan = 2) {
                         <option value="time">Time</option>
                         <option value="url">URL</option>
                     </select>
-                    <button class="required-toggle" onclick="toggleRequired('${fieldId2}')" title="Toggle required field">*</button>
-                    <button class="remove-field" onclick="removeFieldFromRow('${rowId}', '${fieldId2}')" title="Remove field">×</button>
+                    <div class="field-actions">
+                        <button class="comment-btn" onclick="openCommentModal('${fieldId2}')" title="Add/Edit comment">💬</button>
+                        <button class="required-toggle" onclick="toggleRequired('${fieldId2}')" title="Toggle required field">*</button>
+                        <button class="remove-field" onclick="removeFieldFromRow('${rowId}', '${fieldId2}')" title="Remove field">×</button>
+                    </div>
                 </div>
             </div>
         `;
@@ -1192,7 +1326,7 @@ function addField(sectionId, columnSpan = 2) {
 function toggleRequired(fieldId) {
     const field = document.getElementById(fieldId);
     if (field) {
-        const fieldItem = field.querySelector('.field-item') || field;
+        const fieldItem = field.classList.contains('field-item') ? field : field.querySelector('.field-item');
         const requiredIndicator = fieldItem.querySelector('.required-indicator');
         const requiredToggle = fieldItem.querySelector('.required-toggle');
         
@@ -1277,8 +1411,11 @@ function addFieldToRow(rowId) {
                     <option value="time">Time</option>
                     <option value="url">URL</option>
                 </select>
-                <button class="required-toggle" onclick="toggleRequired('${newFieldId}')" title="Toggle required field">*</button>
-                <button class="remove-field" onclick="removeFieldFromRow('${rowId}', '${newFieldId}')" title="Remove field">×</button>
+                <div class="field-actions">
+                    <button class="comment-btn" onclick="openCommentModal('${newFieldId}')" title="Add/Edit comment">💬</button>
+                    <button class="required-toggle" onclick="toggleRequired('${newFieldId}')" title="Toggle required field">*</button>
+                    <button class="remove-field" onclick="removeFieldFromRow('${rowId}', '${newFieldId}')" title="Remove field">×</button>
+                </div>
             </div>
         `;
         
@@ -1334,9 +1471,6 @@ window.addEventListener('resize', function() {
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Salesforce Page Layout Builder initialized');
     
-    // Auto-load draft when page loads
-    const draftLoaded = loadDraft();
-    if (draftLoaded) {
-        console.log('Previous draft loaded automatically');
-    }
+    // Create comment modal
+    createCommentModal();
 });
