@@ -805,3 +805,87 @@ body {
     border-color: #4caf50;
     color: #4caf50;
 }
+/* Related List Styles */
+.related-list-section {
+    border: 2px solid var(--primary-green);
+    background: linear-gradient(to right, var(--light-green) 0%, var(--white) 100%);
+}
+
+.related-list-header {
+    border-bottom: 1px solid var(--primary-green);
+}
+
+.related-list-title {
+    color: var(--dark-green);
+    font-size: 1.3rem;
+    font-weight: 700;
+}
+
+.related-list-btn {
+    background: var(--primary-green);
+}
+
+.related-list-btn:hover {
+    background: var(--dark-green);
+}
+
+/* Required Field Indicator Styles */
+.required-indicator {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: transparent;
+    transition: background 0.3s ease;
+}
+
+.required-indicator.active {
+    background: #dc3545;
+}
+
+.field-item {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1rem;
+    padding-left: 1.5rem; /* Extra padding for the required indicator */
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    background: #fafafa;
+    min-height: 80px;
+}
+
+.field-item.required-field {
+    border-left: 4px solid #dc3545;
+}
+
+.required-toggle {
+    background: #fff;
+    color: #666;
+    border: 2px solid #ddd;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    flex-shrink: 0;
+}
+
+.required-toggle:hover {
+    background: #fce4ec;
+    border-color: #dc3545;
+    color: #dc3545;
+}
+
+.required-toggle.active {
+    background: #dc3545;
+    color: white;
+    border-color: #dc3545;
+}
