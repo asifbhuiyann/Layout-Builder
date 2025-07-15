@@ -455,66 +455,66 @@ function exportAsXML() {
     const layoutData = captureLayoutData();
 
     const xmlDoc = document.implementation.createDocument('', '', null);
-    const root = xmlDoc.createElement('layout');
-    root.setAttribute('timestamp', layoutData.timestamp);
+    const root = xmlDoc.createElementNS("http://soap.sforce.com/2006/04/metadata", "Layout");
 
+    // <fullName>
+    const layoutName = layoutData.sections[0]?.layoutName?.trim() || 'CustomLayout';
+    const fullNameEl = xmlDoc.createElement("fullName");
+    fullNameEl.textContent = layoutName;
+    root.appendChild(fullNameEl);
+
+    // For each section → <layoutSections>
     layoutData.sections.forEach(section => {
-        const sectionElement = xmlDoc.createElement('section');
-        sectionElement.setAttribute('id', section.id);
-        sectionElement.setAttribute('type', section.type);
+        const sectionEl = xmlDoc.createElement("layoutSections");
 
-        if (section.layoutName) {
-            const nameEl = xmlDoc.createElement('layoutName');
-            nameEl.textContent = section.layoutName;
-            sectionElement.appendChild(nameEl);
-        }
+        // <label>
+        const labelEl = xmlDoc.createElement("label");
+        labelEl.textContent = section.sectionTitle || "Section";
+        sectionEl.appendChild(labelEl);
 
-        if (section.recordType) {
-            const recordTypeEl = xmlDoc.createElement('recordType');
-            recordTypeEl.textContent = section.recordType;
-            sectionElement.appendChild(recordTypeEl);
-        }
-
-        if (section.sectionTitle) {
-            const titleEl = xmlDoc.createElement('sectionTitle');
-            titleEl.textContent = section.sectionTitle;
-            sectionElement.appendChild(titleEl);
-        }
+        // Support 1-column export (Salesforce-style) using layoutColumns
+        const columnsEl = xmlDoc.createElement("layoutColumns");
 
         section.fields.forEach(field => {
-            const fieldEl = xmlDoc.createElement('field');
-            fieldEl.setAttribute('id', field.id);
-            fieldEl.setAttribute('name', field.name);
-            fieldEl.setAttribute('type', field.type);
-            fieldEl.setAttribute('columnSpan', field.columnSpan);
-            fieldEl.setAttribute('isRequired', field.isRequired);
-            if (field.rowId) {
-                fieldEl.setAttribute('rowId', field.rowId);
-            }
-            if (field.comment) {
-                const commentEl = xmlDoc.createElement('comment');
-                commentEl.textContent = field.comment;
-                fieldEl.appendChild(commentEl);
-            }
-            sectionElement.appendChild(fieldEl);
+            const itemEl = xmlDoc.createElement("layoutItems");
+
+            // <field>
+            const fieldEl = xmlDoc.createElement("field");
+            fieldEl.textContent = field.name || "Field_Name";
+            itemEl.appendChild(fieldEl);
+
+            // <behavior>
+            const behaviorEl = xmlDoc.createElement("behavior");
+            behaviorEl.textContent = field.isRequired ? "Required" : "Optional";
+            itemEl.appendChild(behaviorEl);
+
+            columnsEl.appendChild(itemEl);
         });
 
-        root.appendChild(sectionElement);
+        sectionEl.appendChild(columnsEl);
+        root.appendChild(sectionEl);
     });
 
+    // <layoutType>
+    const typeEl = xmlDoc.createElement("layoutType");
+    typeEl.textContent = "Custom";
+    root.appendChild(typeEl);
+
     xmlDoc.appendChild(root);
+
     const serializer = new XMLSerializer();
     const xmlStr = serializer.serializeToString(xmlDoc);
-    const blob = new Blob([xmlStr], { type: 'application/xml' });
+    const blob = new Blob([xmlStr], { type: "application/xml" });
 
-    const link = document.createElement('a');
+    const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = 'salesforce-layout.xml';
+    link.download = `${layoutName.replace(/\s+/g, '_')}_layout.xml`;
     link.click();
 
     closeExportModal();
-    showNotification('XML layout exported successfully!', 'success');
+    showNotification("Salesforce-compatible XML exported successfully!", "success");
 }
+
 
 
 function captureLayoutData() {
